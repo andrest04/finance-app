@@ -20,10 +20,15 @@ interface BonoData {
 }
 
 export async function saveBono(user: User, data: BonoData) {
-  const ref = collection(db, "usuarios", user.uid, "bonos");
-  const bonoGuardado = {
-    ...data,
-    creadoEn: Timestamp.now(),
-  };
-  await addDoc(ref, bonoGuardado);
+  try {
+    const ref = collection(db, "usuarios", user.uid, "bonos");
+    const bonoGuardado = {
+      ...data,
+      creadoEn: Timestamp.now(),
+    };
+    await addDoc(ref, bonoGuardado);
+  } catch (error) {
+    console.error("Error guardando bono:", error);
+    throw error;
+  }
 }
