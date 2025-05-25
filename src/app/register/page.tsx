@@ -49,6 +49,19 @@ export default function RegisterPage() {
     }
   };
 
+  const handleGoogleRegister = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      await saveUserData(result.user, {
+        firstName: result.user.displayName?.split(" ")[0] || "",
+        lastName: result.user.displayName?.split(" ").slice(1).join(" ") || "",
+      });
+      router.push("/welcome");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-sm bg-white p-6 rounded-2xl shadow-md space-y-4">
@@ -113,6 +126,39 @@ export default function RegisterPage() {
             Registrarse
           </button>
         </form>
+        <div className="my-4 flex items-center">
+          <div className="flex-grow h-px bg-gray-200" />
+          <span className="mx-2 text-gray-400 text-xs">o</span>
+          <div className="flex-grow h-px bg-gray-200" />
+        </div>
+        <button
+          type="button"
+          onClick={handleGoogleRegister}
+          className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium py-2 rounded-full transition"
+        >
+          <svg className="w-5 h-5" viewBox="0 0 48 48">
+            <g>
+              <path
+                fill="#4285F4"
+                d="M24 9.5c3.54 0 6.7 1.22 9.19 3.61l6.85-6.85C36.45 2.36 30.7 0 24 0 14.82 0 6.73 5.38 2.69 13.19l7.98 6.2C12.12 13.13 17.62 9.5 24 9.5z"
+              />
+              <path
+                fill="#34A853"
+                d="M46.1 24.55c0-1.64-.15-3.22-.43-4.74H24v9.01h12.41c-.54 2.91-2.18 5.38-4.65 7.04l7.19 5.6C43.93 37.01 46.1 31.32 46.1 24.55z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M10.67 28.39c-1.08-3.21-1.08-6.67 0-9.88l-7.98-6.2C.89 16.41 0 20.09 0 24c0 3.91.89 7.59 2.69 11.19l7.98-6.2z"
+              />
+              <path
+                fill="#EA4335"
+                d="M24 48c6.7 0 12.45-2.21 16.59-6.01l-7.19-5.6c-2.01 1.35-4.59 2.15-7.4 2.15-6.38 0-11.88-3.63-14.33-8.89l-7.98 6.2C6.73 42.62 14.82 48 24 48z"
+              />
+              <path fill="none" d="M0 0h48v48H0z" />
+            </g>
+          </svg>
+          Registrarse con Google
+        </button>
         <p className="text-center text-sm text-gray-600">
           ¿Ya tienes una cuenta?{" "}
           <Link href="/login" className="text-blue-600 hover:underline">
