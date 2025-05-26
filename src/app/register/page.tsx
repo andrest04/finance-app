@@ -48,17 +48,24 @@ export default function RegisterPage() {
       setError(getErrorMessage(error));
     }
   };
-
   const handleGoogleRegister = async () => {
     try {
+      console.log("Iniciando registro con Google...");
       const result = await signInWithPopup(auth, googleProvider);
+      console.log("Registro con Google exitoso:", result.user.displayName);
       await saveUserData(result.user, {
         firstName: result.user.displayName?.split(" ")[0] || "",
         lastName: result.user.displayName?.split(" ").slice(1).join(" ") || "",
       });
       router.push("/welcome");
     } catch (error: unknown) {
-      setError(getErrorMessage(error));
+      console.error("Error en registro con Google:", error);
+      // Mostrar error más detallado para depuración
+      if (error instanceof Error) {
+        setError(`${getErrorMessage(error)} (${error.name}: ${error.message})`);
+      } else {
+        setError(getErrorMessage(error));
+      }
     }
   };
 

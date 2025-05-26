@@ -28,14 +28,21 @@ export default function LoginPage() {
       setError(getErrorMessage(error));
     }
   };
-
   const handleGoogleLogin = async () => {
     try {
+      console.log("Iniciando login con Google...");
       const result = await signInWithPopup(auth, googleProvider);
+      console.log("Login con Google exitoso:", result.user.displayName);
       await saveUserData(result.user);
       router.push("/welcome");
     } catch (error: unknown) {
-      setError(getErrorMessage(error));
+      console.error("Error en login con Google:", error);
+      // Mostrar error más detallado para depuración
+      if (error instanceof Error) {
+        setError(`${getErrorMessage(error)} (${error.name}: ${error.message})`);
+      } else {
+        setError(getErrorMessage(error));
+      }
     }
   };
 

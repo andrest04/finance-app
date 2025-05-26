@@ -16,6 +16,15 @@ const app =
   getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+// Configurar el proveedor de Google con opciones adicionales
 const googleProvider = new GoogleAuthProvider();
+// Asegúrate de solicitar el perfil del usuario y el correo electrónico
+googleProvider.addScope("https://www.googleapis.com/auth/userinfo.profile");
+googleProvider.addScope("https://www.googleapis.com/auth/userinfo.email");
+// Forzar la selección de cuenta para evitar selección automática que puede causar problemas
+googleProvider.setCustomParameters({
+  prompt: "select_account",
+});
 
 export { app, auth, db, googleProvider };
