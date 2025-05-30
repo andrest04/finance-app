@@ -6,12 +6,13 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { Button } from "@/components/ui/button";
+import type { BonoData } from "@/lib/bonoUtils";
 
 export default function DetalleBonoPage() {
   const { firebaseUser } = useCurrentUser();
   const { id } = useParams();
   const router = useRouter();
-  const [bono, setBono] = useState<any | null>(null);
+  const [bono, setBono] = useState<BonoData | null>(null);
 
   const etiquetasBonito: { [key: string]: string } = {
     nombre: "Nombre del Bono",
@@ -59,13 +60,16 @@ export default function DetalleBonoPage() {
     "1": "Anual",
   };
 
-  const formatPercentage = (value: any) => `${parseFloat(value).toFixed(2)} %`;
-  const formatCurrency = (value: any) =>
-    `S/. ${parseFloat(value).toLocaleString("es-PE", {
+  const formatPercentage = (value: number | string) =>
+    `${parseFloat(String(value)).toFixed(2)} %`;
+
+  const formatCurrency = (value: number | string) =>
+    `S/. ${parseFloat(String(value)).toLocaleString("es-PE", {
       minimumFractionDigits: 2,
     })}`;
-  const formatInteger = (value: any, suffix = "") =>
-    `${parseInt(value)}${suffix}`;
+
+  const formatInteger = (value: number | string, suffix = "") =>
+    `${parseInt(String(value))}${suffix}`;
 
   useEffect(() => {
     if (!firebaseUser || !id) return;
@@ -73,7 +77,7 @@ export default function DetalleBonoPage() {
     const ref = doc(db, "usuarios", firebaseUser.uid, "bonos", String(id));
     getDoc(ref).then((snap) => {
       if (snap.exists()) {
-        setBono(snap.data());
+        setBono(snap.data() as BonoData);
       } else {
         alert("El bono no existe.");
       }
@@ -99,37 +103,45 @@ export default function DetalleBonoPage() {
         <section key={titulo} className="space-y-3">
           <h2 className="text-lg font-semibold text-blue-700">{titulo}</h2>
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {campos.map((campo) => (
-              <div
-                key={campo}
-                className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white"
-              >
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
-                  {etiquetasBonito[campo] || campo}
-                </p>
-                <p className="text-sm text-gray-800 break-words">
-                  {campo === "frecuenciaPago" ||
-                  campo === "frecuenciaCapitalizacion"
-                    ? frecuenciaTexto[String(bono[campo])] || bono[campo]
-                    : typeof bono[campo] === "object" &&
-                      bono[campo] !== null &&
-                      "seconds" in bono[campo]
-                    ? new Date(
-                        (bono[campo] as { seconds: number }).seconds * 1000
-                      ).toLocaleDateString("es-PE")
-                    : campo === "tasaAnual" ||
-                      campo === "tasaMercado" ||
-                      campo === "comisionEmisor" ||
-                      campo === "comisionBonista"
-                    ? formatPercentage(bono[campo])
-                    : campo === "valorNominal"
-                    ? formatCurrency(bono[campo])
-                    : campo === "plazo" || campo === "nGracia"
-                    ? formatInteger(bono[campo])
-                    : String(bono[campo])}
-                </p>
-              </div>
-            ))}
+            {campos.map((campo) => {
+              const typedCampo = campo as keyof BonoData;
+              return (
+                <div
+                  key={campo}
+                  className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white"
+                >
+                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
+                    {etiquetasBonito[campo] || campo}
+                  </p>
+                  <p className="text-sm text-gray-800 break-words">
+                    {campo === "frecuenciaPago" ||
+                    campo === "frecuenciaCapitalizacion"
+                      ? frecuenciaTexto[String(bono[typedCampo])] ||
+                        String(bono[typedCampo] ?? "")
+                      : typeof bono[typedCampo] === "object" &&
+                        bono[typedCampo] !== null &&
+                        "seconds" in bono[typedCampo]
+                      ? new Date(
+                          (bono[typedCampo] as { seconds: number }).seconds *
+                            1000
+                        ).toLocaleDateString("es-PE")
+                      : campo === "tasaAnual" ||
+                        campo === "tasaMercado" ||
+                        campo === "comisionEmisor" ||
+                        campo === "comisionBonista"
+                      ? formatPercentage(bono[typedCampo] ?? 0)
+                      : campo === "valorNominal"
+                      ? formatCurrency(bono[typedCampo] ?? 0)
+                      : campo === "plazo" || campo === "nGracia"
+                      ? formatInteger(bono[typedCampo] ?? "")
+                      : typeof bono[typedCampo] === "object" ||
+                        typeof bono[typedCampo] === "undefined"
+                      ? ""
+                      : String(bono[typedCampo])}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </section>
       ))}

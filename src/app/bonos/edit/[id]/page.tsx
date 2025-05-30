@@ -15,12 +15,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { BonoData } from "@/lib/bonoUtils";
 
 export default function EditarBonoPage() {
   const { firebaseUser } = useCurrentUser();
   const { id } = useParams();
   const router = useRouter();
-  const [form, setForm] = useState<any>({});
+  const [form, setForm] = useState<Partial<BonoData>>({});
   const [mensaje, setMensaje] = useState("");
 
   useEffect(() => {
@@ -28,7 +29,7 @@ export default function EditarBonoPage() {
     const ref = doc(db, "usuarios", firebaseUser.uid, "bonos", String(id));
     getDoc(ref).then((snap) => {
       if (snap.exists()) {
-        setForm(snap.data());
+        setForm(snap.data() as Partial<BonoData>);
       } else {
         alert("El bono no existe.");
       }
@@ -39,8 +40,8 @@ export default function EditarBonoPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSelect = (name: string, value: string) => {
-    setForm((prev: any) => ({ ...prev, [name]: value }));
+  const handleSelect = (name: keyof BonoData, value: string) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,17 +51,17 @@ export default function EditarBonoPage() {
     const ref = doc(db, "usuarios", firebaseUser.uid, "bonos", String(id));
     await updateDoc(ref, {
       ...form,
-      valorNominal: parseFloat(form.valorNominal),
-      tasaAnual: parseFloat(form.tasaAnual),
-      frecuenciaPago: parseInt(form.frecuenciaPago),
+      valorNominal: parseFloat(String(form.valorNominal)),
+      tasaAnual: parseFloat(String(form.tasaAnual)),
+      frecuenciaPago: parseInt(String(form.frecuenciaPago)),
       frecuenciaCapitalizacion: form.frecuenciaCapitalizacion
-        ? parseInt(form.frecuenciaCapitalizacion)
+        ? parseInt(String(form.frecuenciaCapitalizacion))
         : undefined,
-      plazo: parseInt(form.plazo),
-      nGracia: form.nGracia ? parseInt(form.nGracia) : undefined,
-      comisionEmisor: parseFloat(form.comisionEmisor),
-      comisionBonista: parseFloat(form.comisionBonista),
-      tasaMercado: parseFloat(form.tasaMercado),
+      plazo: parseInt(String(form.plazo)),
+      nGracia: form.nGracia ? parseInt(String(form.nGracia)) : undefined,
+      comisionEmisor: parseFloat(String(form.comisionEmisor)),
+      comisionBonista: parseFloat(String(form.comisionBonista)),
+      tasaMercado: parseFloat(String(form.tasaMercado)),
     });
     setMensaje("✅ Bono actualizado correctamente.");
   };
@@ -83,21 +84,21 @@ export default function EditarBonoPage() {
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <Label>Nombre del Bono</Label>
-            <Input name="nombre" value={form.nombre} onChange={handleChange} />
+            <Input name="nombre" value={form.nombre ?? ""} onChange={handleChange} />
           </div>
           <div>
             <Label>Valor Nominal</Label>
             <Input
               name="valorNominal"
               type="number"
-              value={form.valorNominal}
+              value={form.valorNominal ?? ""}
               onChange={handleChange}
             />
           </div>
           <div>
             <Label>Moneda</Label>
             <Select
-              value={form.moneda}
+              value={form.moneda ?? ""}
               onValueChange={(val) => handleSelect("moneda", val)}
             >
               <SelectTrigger>
@@ -113,7 +114,7 @@ export default function EditarBonoPage() {
           <div>
             <Label>Tipo de Tasa</Label>
             <Select
-              value={form.tipoTasa}
+              value={form.tipoTasa ?? ""}
               onValueChange={(val) => handleSelect("tipoTasa", val)}
             >
               <SelectTrigger>
@@ -130,14 +131,14 @@ export default function EditarBonoPage() {
             <Input
               name="tasaAnual"
               type="number"
-              value={form.tasaAnual}
+              value={form.tasaAnual ?? ""}
               onChange={handleChange}
             />
           </div>
           <div>
             <Label>Frecuencia de Pago</Label>
             <Select
-              value={String(form.frecuenciaPago)}
+              value={form.frecuenciaPago ? String(form.frecuenciaPago) : ""}
               onValueChange={(val) => handleSelect("frecuenciaPago", val)}
             >
               <SelectTrigger>
@@ -157,7 +158,7 @@ export default function EditarBonoPage() {
             <div>
               <Label>Frecuencia de Capitalización</Label>
               <Select
-                value={String(form.frecuenciaCapitalizacion)}
+                value={form.frecuenciaCapitalizacion ? String(form.frecuenciaCapitalizacion) : ""}
                 onValueChange={(val) =>
                   handleSelect("frecuenciaCapitalizacion", val)
                 }
@@ -182,14 +183,14 @@ export default function EditarBonoPage() {
             <Input
               name="plazo"
               type="number"
-              value={form.plazo}
+              value={form.plazo ?? ""}
               onChange={handleChange}
             />
           </div>
           <div>
             <Label>Tipo de Gracia</Label>
             <Select
-              value={form.tipoGracia}
+              value={form.tipoGracia ?? ""}
               onValueChange={(val) => handleSelect("tipoGracia", val)}
             >
               <SelectTrigger>
@@ -208,7 +209,7 @@ export default function EditarBonoPage() {
               <Input
                 name="nGracia"
                 type="number"
-                value={form.nGracia}
+                value={form.nGracia ?? ""}
                 onChange={handleChange}
               />
             </div>
@@ -218,7 +219,11 @@ export default function EditarBonoPage() {
             <Input
               name="fechaEmision"
               type="date"
-              value={form.fechaEmision}
+              value={
+                typeof form.fechaEmision === "object" && form.fechaEmision !== null && "seconds" in form.fechaEmision
+                  ? new Date(form.fechaEmision.seconds * 1000).toISOString().slice(0, 10)
+                  : form.fechaEmision ?? ""
+              }
               onChange={handleChange}
             />
           </div>
@@ -227,7 +232,7 @@ export default function EditarBonoPage() {
             <Input
               name="comisionEmisor"
               type="number"
-              value={form.comisionEmisor}
+              value={form.comisionEmisor ?? ""}
               onChange={handleChange}
             />
           </div>
@@ -236,7 +241,7 @@ export default function EditarBonoPage() {
             <Input
               name="comisionBonista"
               type="number"
-              value={form.comisionBonista}
+              value={form.comisionBonista ?? ""}
               onChange={handleChange}
             />
           </div>
@@ -245,7 +250,7 @@ export default function EditarBonoPage() {
             <Input
               name="tasaMercado"
               type="number"
-              value={form.tasaMercado}
+              value={form.tasaMercado ?? ""}
               onChange={handleChange}
             />
           </div>
