@@ -32,15 +32,16 @@ export default function BonosList() {
   };
 
   useEffect(() => {
-    const fetchBonos = async () => {
-      if (!firebaseUser) return;
+    if (!firebaseUser) return;
 
+    const fetchBonos = async () => {
       const bonosRef = collection(db, "usuarios", firebaseUser.uid, "bonos");
       const snapshot = await getDocs(bonosRef);
       const bonosData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as (Bono & { id: string })[];
+
       setBonos(bonosData);
       setLoading(false);
     };
@@ -49,6 +50,10 @@ export default function BonosList() {
   }, [firebaseUser]);
 
   if (loading) return <p className="text-center">Cargando bonos...</p>;
+
+  if (!firebaseUser) {
+    return <p className="p-6 text-center text-gray-500">Cargando sesión...</p>;
+  }
 
   if (bonos.length === 0)
     return <p className="text-center">No hay bonos registrados.</p>;
@@ -88,6 +93,12 @@ export default function BonosList() {
                   className="text-red-600 hover:underline"
                 >
                   Eliminar
+                </button>
+                <button
+                  onClick={() => router.push(`/bonos/edit/${bono.id}`)}
+                  className="text-green-600 hover:underline"
+                >
+                  Editar
                 </button>
               </td>
             </tr>

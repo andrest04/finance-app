@@ -1,0 +1,263 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useCurrentUser } from "@/lib/useCurrentUser";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+export default function EditarBonoPage() {
+  const { firebaseUser } = useCurrentUser();
+  const { id } = useParams();
+  const router = useRouter();
+  const [form, setForm] = useState<any>({});
+  const [mensaje, setMensaje] = useState("");
+
+  useEffect(() => {
+    if (!firebaseUser || !id) return;
+    const ref = doc(db, "usuarios", firebaseUser.uid, "bonos", String(id));
+    getDoc(ref).then((snap) => {
+      if (snap.exists()) {
+        setForm(snap.data());
+      } else {
+        alert("El bono no existe.");
+      }
+    });
+  }, [firebaseUser, id]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSelect = (name: string, value: string) => {
+    setForm((prev: any) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firebaseUser || !id) return;
+
+    const ref = doc(db, "usuarios", firebaseUser.uid, "bonos", String(id));
+    await updateDoc(ref, {
+      ...form,
+      valorNominal: parseFloat(form.valorNominal),
+      tasaAnual: parseFloat(form.tasaAnual),
+      frecuenciaPago: parseInt(form.frecuenciaPago),
+      frecuenciaCapitalizacion: form.frecuenciaCapitalizacion
+        ? parseInt(form.frecuenciaCapitalizacion)
+        : undefined,
+      plazo: parseInt(form.plazo),
+      nGracia: form.nGracia ? parseInt(form.nGracia) : undefined,
+      comisionEmisor: parseFloat(form.comisionEmisor),
+      comisionBonista: parseFloat(form.comisionBonista),
+      tasaMercado: parseFloat(form.tasaMercado),
+    });
+    setMensaje("✅ Bono actualizado correctamente.");
+  };
+
+  if (!firebaseUser)
+    return <p className="p-6 text-center">Cargando sesión...</p>;
+  if (!form.nombre) return <p className="p-6 text-center">Cargando bono...</p>;
+
+  return (
+    <main className="p-6 max-w-6xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Editar Bono</h1>
+
+      {mensaje && (
+        <div className="mb-4 p-4 bg-green-100 text-green-800 rounded-md border border-green-300">
+          {mensaje}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <Label>Nombre del Bono</Label>
+            <Input name="nombre" value={form.nombre} onChange={handleChange} />
+          </div>
+          <div>
+            <Label>Valor Nominal</Label>
+            <Input
+              name="valorNominal"
+              type="number"
+              value={form.valorNominal}
+              onChange={handleChange}
+            />
+          </div>
+          <div>
+            <Label>Moneda</Label>
+            <Select
+              value={form.moneda}
+              onValueChange={(val) => handleSelect("moneda", val)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona moneda" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="PEN">PEN</SelectItem>
+                <SelectItem value="USD">USD</SelectItem>
+                <SelectItem value="EUR">EUR</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Tipo de Tasa</Label>
+            <Select
+              value={form.tipoTasa}
+              onValueChange={(val) => handleSelect("tipoTasa", val)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Tipo de tasa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Nominal">Nominal</SelectItem>
+                <SelectItem value="Efectiva">Efectiva</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Tasa Anual</Label>
+            <Input
+              name="tasaAnual"
+              type="number"
+              value={form.tasaAnual}
+              onChange={handleChange}
+            />
+          </div>
+          <div>
+            <Label>Frecuencia de Pago</Label>
+            <Select
+              value={String(form.frecuenciaPago)}
+              onValueChange={(val) => handleSelect("frecuenciaPago", val)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Frecuencia" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="12">Mensual</SelectItem>
+                <SelectItem value="6">Bimestral</SelectItem>
+                <SelectItem value="4">Trimestral</SelectItem>
+                <SelectItem value="3">Cuatrimestral</SelectItem>
+                <SelectItem value="2">Semestral</SelectItem>
+                <SelectItem value="1">Anual</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {form.tipoTasa === "Nominal" && (
+            <div>
+              <Label>Frecuencia de Capitalización</Label>
+              <Select
+                value={String(form.frecuenciaCapitalizacion)}
+                onValueChange={(val) =>
+                  handleSelect("frecuenciaCapitalizacion", val)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Capitalización" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="360">Diaria</SelectItem>
+                  <SelectItem value="12">Mensual</SelectItem>
+                  <SelectItem value="6">Bimestral</SelectItem>
+                  <SelectItem value="4">Trimestral</SelectItem>
+                  <SelectItem value="3">Cuatrimestral</SelectItem>
+                  <SelectItem value="2">Semestral</SelectItem>
+                  <SelectItem value="1">Anual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div>
+            <Label>Plazo (años)</Label>
+            <Input
+              name="plazo"
+              type="number"
+              value={form.plazo}
+              onChange={handleChange}
+            />
+          </div>
+          <div>
+            <Label>Tipo de Gracia</Label>
+            <Select
+              value={form.tipoGracia}
+              onValueChange={(val) => handleSelect("tipoGracia", val)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Tipo de gracia" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Sin Gracia">Sin Gracia</SelectItem>
+                <SelectItem value="Parcial">Parcial</SelectItem>
+                <SelectItem value="Total">Total</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {(form.tipoGracia === "Parcial" || form.tipoGracia === "Total") && (
+            <div>
+              <Label>N° Períodos de Gracia</Label>
+              <Input
+                name="nGracia"
+                type="number"
+                value={form.nGracia}
+                onChange={handleChange}
+              />
+            </div>
+          )}
+          <div>
+            <Label>Fecha de Emisión</Label>
+            <Input
+              name="fechaEmision"
+              type="date"
+              value={form.fechaEmision}
+              onChange={handleChange}
+            />
+          </div>
+          <div>
+            <Label>Comisión del Emisor</Label>
+            <Input
+              name="comisionEmisor"
+              type="number"
+              value={form.comisionEmisor}
+              onChange={handleChange}
+            />
+          </div>
+          <div>
+            <Label>Comisión del Bonista</Label>
+            <Input
+              name="comisionBonista"
+              type="number"
+              value={form.comisionBonista}
+              onChange={handleChange}
+            />
+          </div>
+          <div>
+            <Label>Tasa de Mercado (TREA)</Label>
+            <Input
+              name="tasaMercado"
+              type="number"
+              value={form.tasaMercado}
+              onChange={handleChange}
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-4 justify-end">
+          <Button variant="outline" type="button" onClick={() => router.back()}>
+            Cancelar
+          </Button>
+          <Button type="submit">Guardar Cambios</Button>
+        </div>
+      </form>
+    </main>
+  );
+}

@@ -74,7 +74,7 @@ export default function Sidebar() {
               📊 Análisis de Bono
             </Button>
           </Link>
-          <Link href="/bonos/listar">
+          <Link href="/bonos/list">
             <Button
               variant="ghost"
               className="w-full justify-start text-white hover:bg-blue-500"

@@ -1,4 +1,4 @@
-import BonosList from "@/components/ui/BonosList";
+import BonosList from "@/components/ui/BonoList";
 
 export default function ListaBonosPage() {
   return (
