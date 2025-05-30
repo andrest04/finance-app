@@ -83,7 +83,7 @@ export default function BonosList() {
               <td className="px-4 py-2">{bono.fechaEmision}</td>
               <td className="px-4 py-2 space-x-2">
                 <button
-                  onClick={() => router.push(`/bonos/detalle/${bono.id}`)}
+                  onClick={() => router.push(`/bonos/detail/${bono.id}`)}
                   className="text-blue-600 hover:underline"
                 >
                   Ver detalle
