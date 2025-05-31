@@ -1,55 +1,65 @@
+// app/welcome/page.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
-import { onAuthStateChanged, signOut, User } from "firebase/auth";
-import { useRouter } from "next/navigation";
-import { auth } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
+import { collection, getDocs } from "firebase/firestore";
+import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
-export default function WelcomePage() {
-  const [user, setUser] = useState<User | null>(null);
-  const router = useRouter();
+export default function DashboardPage() {
+  const { user } = useAuth();
+  const [bonoCount, setBonoCount] = useState(0);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const fetchBonos = async () => {
       if (user) {
-        setUser(user);
-      } else {
-        router.push("/login");
+        const bonosRef = collection(db, `usuarios/${user.uid}/bonos`);
+        const snapshot = await getDocs(bonosRef);
+        setBonoCount(snapshot.size);
       }
-    });
+    };
 
-    return () => unsubscribe();
-  }, [router]);
-
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      router.push("/login");
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
-
-  if (!user) {
-    return <div>Loading...</div>;
-  }
+    fetchBonos();
+  }, [user]);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            ¡Bienvenido!
-          </h1>
-          <p className="text-gray-600 mb-6">
-            Has iniciado sesión como: {user.email}
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-4">
+        Bienvenido, {user?.displayName || "Usuario"} 👋
+      </h1>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {/* Resumen */}
+        <div className="p-4 border rounded-xl shadow bg-white">
+          <h2 className="text-lg font-semibold mb-2">Resumen general</h2>
+          <p className="text-gray-700">
+            Bonos registrados: <span className="font-bold">{bonoCount}</span>
           </p>
-          <button
-            onClick={handleSignOut}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-          >
-            Cerrar Sesión
-          </button>
+        </div>
+
+        {/* Accesos rápidos */}
+        <div className="p-4 border rounded-xl shadow bg-white">
+          <h2 className="text-lg font-semibold mb-2">Accesos rápidos</h2>
+          <ul className="space-y-2">
+            <li>
+              <Link
+                href="/bonos/register"
+                className="text-blue-600 hover:underline"
+              >
+                ➕ Registrar nuevo bono
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/bonos/list"
+                className="text-blue-600 hover:underline"
+              >
+                📋 Ver lista de bonos
+              </Link>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
