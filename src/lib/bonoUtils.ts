@@ -2,7 +2,7 @@ import { db } from "./firebase";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { User } from "firebase/auth";
 
-interface BonoData {
+export interface BonoData {
   nombre: string;
   valorNominal: number;
   moneda: string;
@@ -13,10 +13,11 @@ interface BonoData {
   plazo: number;
   tipoGracia: string;
   nGracia?: number;
-  fechaEmision: string;
+  fechaEmision: string | { seconds: number };
   comisionEmisor: number;
   comisionBonista: number;
   tasaMercado: number;
+  creadoEn?: { seconds: number };
 }
 
 export async function saveBono(user: User, data: BonoData) {
