@@ -77,7 +77,7 @@ export default function BonosList() {
               <td className="px-4 py-2">{bono.nombre}</td>
               <td className="px-4 py-2">{bono.moneda}</td>
               <td className="px-4 py-2">
-                S/. {bono.valorNominal.toLocaleString()}
+                {bono.valorNominal.toLocaleString()}
               </td>
               <td className="px-4 py-2">{bono.plazo} años</td>
               <td className="px-4 py-2">{bono.fechaEmision}</td>

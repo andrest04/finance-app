@@ -64,7 +64,7 @@ export default function DetalleBonoPage() {
     `${parseFloat(String(value)).toFixed(2)} %`;
 
   const formatCurrency = (value: number | string) =>
-    `S/. ${parseFloat(String(value)).toLocaleString("es-PE", {
+    `${parseFloat(String(value)).toLocaleString("es-PE", {
       minimumFractionDigits: 2,
     })}`;
 
