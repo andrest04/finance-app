@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import LayoutWithSidebar from "./LayoutWithSidebar";
+import { AuthProvider } from "@/context/AuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,7 +18,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Finance App",
-  description: "Trabajo Final de Finanzas",
+  description: "Proyecto final de Finanzas - Metodo Frances",
 };
 
 export default function RootLayout({
@@ -28,7 +29,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <LayoutWithSidebar>{children}</LayoutWithSidebar>
+        <AuthProvider>
+          <LayoutWithSidebar>{children}</LayoutWithSidebar>
+        </AuthProvider>
+
         <Analytics />
         <SpeedInsights />
       </body>
