@@ -1,34 +1,92 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import {
+  Home,
+  PlusCircle,
+  BarChart2,
+  List,
+  LogOut,
+  User,
+  Settings,
+  HelpCircle,
+  Menu,
+  X,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
+
+const navigationItems = [
+  {
+    name: "Dashboard",
+    href: "/welcome",
+    icon: Home,
+  },
+  {
+    name: "Registrar Bono",
+    href: "/bonos/register",
+    icon: PlusCircle,
+  },
+  {
+    name: "Análisis de Bono",
+    href: "/bonos/analisis",
+    icon: BarChart2,
+  },
+  {
+    name: "Listar Bonos",
+    href: "/bonos/list",
+    icon: List,
+  },
+];
+
+const bottomNavigationItems = [
+  {
+    name: "Perfil",
+    href: "/profile",
+    icon: User,
+  },
+  {
+    name: "Configuración",
+    href: "/settings",
+    icon: Settings,
+  },
+  {
+    name: "Ayuda",
+    href: "/help",
+    icon: HelpCircle,
+  },
+];
 
 export default function Sidebar() {
   const router = useRouter();
+  const pathname = usePathname();
   const { profile, firebaseUser } = useCurrentUser();
+  const [open, setOpen] = useState(false);
 
   const handleLogout = async () => {
     await signOut(auth);
     router.push("/login");
   };
 
-  return (
-    <aside className="h-screen w-64 bg-blue-600 text-white flex flex-col justify-between p-4">
+  // Sidebar content as a function for reuse
+  const sidebarContent = (
+    <aside className="w-64 min-h-screen bg-gradient-to-b from-blue-600 to-blue-700 text-white flex flex-col justify-between p-4 border-r border-blue-500/20">
       {/* Parte superior: Perfil */}
-      <div>
-        <div className="flex items-center gap-3 mb-8">
+      <div className="space-y-6">
+        <div className="flex items-center gap-3 p-2 rounded-lg bg-white/10 backdrop-blur-sm">
           {firebaseUser?.photoURL ? (
             <Image
               src={firebaseUser.photoURL}
               alt="Perfil"
               width={48}
               height={48}
-              className="rounded-full border-2 border-white object-cover"
+              className="rounded-full border-2 border-white/20 object-cover"
             />
           ) : (
             <Image
@@ -36,7 +94,7 @@ export default function Sidebar() {
               alt="Avatar por defecto"
               width={48}
               height={48}
-              className="rounded-full border-2 border-white object-cover"
+              className="rounded-full border-2 border-white/20 object-cover"
             />
           )}
           <div>
@@ -49,58 +107,111 @@ export default function Sidebar() {
           </div>
         </div>
 
-        <nav className="space-y-2">
-          <Link href="/welcome">
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-white hover:bg-blue-500"
-            >
-              🏠 Dashboard
-            </Button>
-          </Link>
-          <Link href="/bonos/register">
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-white hover:bg-blue-500"
-            >
-              💳 Registrar Bono
-            </Button>
-          </Link>
-          <Link href="/bonos/analisis">
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-white hover:bg-blue-500"
-            >
-              📊 Análisis de Bono
-            </Button>
-          </Link>
-          <Link href="/bonos/list">
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-white hover:bg-blue-500"
-            >
-              📋 Listar Bonos
-            </Button>
-          </Link>
+        {/* Navegación principal */}
+        <nav className="space-y-1">
+          {navigationItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link key={item.href} href={item.href}>
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start text-white hover:bg-white/10 transition-all duration-200 group relative",
+                    isActive && "bg-white/20"
+                  )}
+                >
+                  <item.icon className="mr-2 h-5 w-5" />
+                  {item.name}
+                  {isActive && (
+                    <span className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white" />
+                  )}
+                </Button>
+              </Link>
+            );
+          })}
         </nav>
       </div>
 
-      {/* Parte inferior: Logout */}
-      <div>
+      {/* Parte inferior: Navegación secundaria y Logout */}
+      <div className="space-y-4">
+        {/* Navegación secundaria */}
+        <nav className="space-y-1">
+          {bottomNavigationItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link key={item.href} href={item.href}>
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group relative",
+                    isActive && "bg-white/20 text-white"
+                  )}
+                >
+                  <item.icon className="mr-2 h-5 w-5" />
+                  {item.name}
+                  {isActive && (
+                    <span className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white" />
+                  )}
+                </Button>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Separador */}
+        <div className="h-px bg-white/10" />
+
+        {/* Botón de Logout */}
         <Button
           variant="outline"
-          className="w-full border-2 border-white text-white bg-transparent hover:bg-white hover:text-red-600 hover:border-red-600 transition-all duration-200 flex justify-center items-center font-semibold py-3 group"
+          className="w-full border-2 border-white/20 text-white bg-transparent hover:bg-white/10 hover:border-white/30 transition-all duration-200 flex justify-center items-center font-semibold py-3 group"
           onClick={handleLogout}
         >
-          <span className="font-semibold group-hover:text-red-600">
-            Cerrar sesión
-          </span>
-          <span className="ml-2 opacity-0 group-hover:opacity-100 text-xs transition-opacity duration-200 group-hover:text-red-600">
-            ¿Seguro?
-          </span>
+          <LogOut className="mr-2 h-5 w-5" />
+          <span className="font-semibold">Cerrar sesión</span>
         </Button>
-        <p className="text-xs text-center mt-2 opacity-60">© Tu equipo</p>
+
+        {/* Footer */}
+        <p className="text-xs text-center text-white/60">
+          © {new Date().getFullYear()} Tu equipo
+        </p>
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      {/* Botón hamburguesa solo en móvil */}
+      <button
+        className="md:hidden fixed top-4 left-4 z-40 bg-blue-600 p-2 rounded-full shadow-lg text-white hover:bg-blue-700 transition"
+        onClick={() => setOpen(true)}
+        aria-label="Abrir menú"
+      >
+        <Menu className="w-6 h-6" />
+      </button>
+      {/* Sidebar fijo en desktop */}
+      <div className="hidden md:block">{sidebarContent}</div>
+      {/* Sidebar overlay en móvil */}
+      {open && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* Fondo oscuro */}
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setOpen(false)}
+          />
+          {/* Sidebar deslizante */}
+          <div className="relative z-50 animate-slide-in-left">
+            <button
+              className="absolute top-4 right-4 text-white bg-blue-600 rounded-full p-1 hover:bg-blue-700 z-50"
+              onClick={() => setOpen(false)}
+              aria-label="Cerrar menú"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

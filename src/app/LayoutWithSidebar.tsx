@@ -2,20 +2,35 @@
 
 import { usePathname } from "next/navigation";
 import Sidebar from "@/components/ui/Sidebar";
+import { useEffect, useState } from "react";
 
-export default function LayoutWithSidebar({ children }: { children: React.ReactNode }) {
+function useIsClient() {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => setIsClient(true), []);
+  return isClient;
+}
+
+export default function LayoutWithSidebar({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
+  const isClient = useIsClient();
 
-  const isPublic = pathname.startsWith("/login") || pathname.startsWith("/register");
+  const isPublic =
+    pathname.startsWith("/login") || pathname.startsWith("/register");
 
   if (isPublic) {
     return <>{children}</>;
   }
 
+  if (!isClient) return null;
+
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 bg-gray-50 p-6">{children}</main>
+      <main className="flex-1 min-h-screen bg-gray-50 p-6">{children}</main>
     </div>
   );
 }
