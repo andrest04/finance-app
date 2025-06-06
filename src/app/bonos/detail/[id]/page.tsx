@@ -74,15 +74,22 @@ export default function DetalleBonoPage() {
   useEffect(() => {
     if (!firebaseUser || !id) return;
 
-    const ref = doc(db, "usuarios", firebaseUser.uid, "bonos", String(id));
+    const ref = doc(db, "bonds", String(id));
     getDoc(ref).then((snap) => {
       if (snap.exists()) {
-        setBono(snap.data() as BonoData);
+        const data = snap.data() as BonoData;
+        if (data.userId === firebaseUser.uid) {
+          setBono(data);
+        } else {
+          alert("No tienes permiso para ver este bono.");
+          router.push("/bonos/list");
+        }
       } else {
         alert("El bono no existe.");
+        router.push("/bonos/list");
       }
     });
-  }, [firebaseUser, id]);
+  }, [firebaseUser, id, router]);
 
   if (!firebaseUser)
     return <p className="p-6 text-center">Cargando sesión...</p>;

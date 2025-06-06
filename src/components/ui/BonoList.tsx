@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  deleteDoc,
+  doc,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useRouter } from "next/navigation";
@@ -43,7 +50,7 @@ export default function BonosList() {
     if (!confirmacion) return;
     setDeletingId(bonoId);
     try {
-      await deleteDoc(doc(db, "usuarios", firebaseUser.uid, "bonos", bonoId));
+      await deleteDoc(doc(db, "bonds", bonoId));
       setBonos((prev) => prev.filter((b) => b.id !== bonoId));
       toast.success("Bono eliminado correctamente");
     } catch {
@@ -57,8 +64,9 @@ export default function BonosList() {
     if (!firebaseUser) return;
 
     const fetchBonos = async () => {
-      const bonosRef = collection(db, "usuarios", firebaseUser.uid, "bonos");
-      const snapshot = await getDocs(bonosRef);
+      const bonosRef = collection(db, "bonds");
+      const q = query(bonosRef, where("userId", "==", firebaseUser.uid));
+      const snapshot = await getDocs(q);
       const bonosData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),

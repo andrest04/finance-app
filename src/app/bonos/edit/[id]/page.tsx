@@ -26,15 +26,22 @@ export default function EditarBonoPage() {
 
   useEffect(() => {
     if (!firebaseUser || !id) return;
-    const ref = doc(db, "usuarios", firebaseUser.uid, "bonos", String(id));
+    const ref = doc(db, "bonds", String(id));
     getDoc(ref).then((snap) => {
       if (snap.exists()) {
-        setForm(snap.data() as Partial<BonoData>);
+        const data = snap.data() as Partial<BonoData>;
+        if (data.userId === firebaseUser.uid) {
+          setForm(data);
+        } else {
+          alert("No tienes permiso para editar este bono.");
+          router.push("/bonos/list");
+        }
       } else {
         alert("El bono no existe.");
+        router.push("/bonos/list");
       }
     });
-  }, [firebaseUser, id]);
+  }, [firebaseUser, id, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -48,7 +55,7 @@ export default function EditarBonoPage() {
     e.preventDefault();
     if (!firebaseUser || !id) return;
 
-    const ref = doc(db, "usuarios", firebaseUser.uid, "bonos", String(id));
+    const ref = doc(db, "bonds", String(id));
     await updateDoc(ref, {
       ...form,
       valorNominal: parseFloat(String(form.valorNominal)),
@@ -84,7 +91,11 @@ export default function EditarBonoPage() {
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <Label>Nombre del Bono</Label>
-            <Input name="nombre" value={form.nombre ?? ""} onChange={handleChange} />
+            <Input
+              name="nombre"
+              value={form.nombre ?? ""}
+              onChange={handleChange}
+            />
           </div>
           <div>
             <Label>Valor Nominal</Label>
@@ -158,7 +169,11 @@ export default function EditarBonoPage() {
             <div>
               <Label>Frecuencia de Capitalización</Label>
               <Select
-                value={form.frecuenciaCapitalizacion ? String(form.frecuenciaCapitalizacion) : ""}
+                value={
+                  form.frecuenciaCapitalizacion
+                    ? String(form.frecuenciaCapitalizacion)
+                    : ""
+                }
                 onValueChange={(val) =>
                   handleSelect("frecuenciaCapitalizacion", val)
                 }
@@ -220,8 +235,12 @@ export default function EditarBonoPage() {
               name="fechaEmision"
               type="date"
               value={
-                typeof form.fechaEmision === "object" && form.fechaEmision !== null && "seconds" in form.fechaEmision
-                  ? new Date(form.fechaEmision.seconds * 1000).toISOString().slice(0, 10)
+                typeof form.fechaEmision === "object" &&
+                form.fechaEmision !== null &&
+                "seconds" in form.fechaEmision
+                  ? new Date(form.fechaEmision.seconds * 1000)
+                      .toISOString()
+                      .slice(0, 10)
                   : form.fechaEmision ?? ""
               }
               onChange={handleChange}
