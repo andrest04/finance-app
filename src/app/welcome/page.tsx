@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { UserCircle, BarChart2, PlusCircle, List } from "lucide-react";
@@ -16,8 +16,9 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchBonos = async () => {
       if (user) {
-        const bonosRef = collection(db, `usuarios/${user.uid}/bonos`);
-        const snapshot = await getDocs(bonosRef);
+        const bonosRef = collection(db, "bonds");
+        const q = query(bonosRef, where("userId", "==", user.uid));
+        const snapshot = await getDocs(q);
         setBonoCount(snapshot.size);
       }
     };

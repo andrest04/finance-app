@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useRouter } from "next/navigation";
 
 const bonoFormSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido"),
@@ -44,6 +45,7 @@ export default function BonoForm() {
   const { firebaseUser } = useCurrentUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userCurrency, setUserCurrency] = useState("PEN");
+  const router = useRouter();
 
   useEffect(() => {
     const loadUserSettings = async () => {
@@ -111,15 +113,17 @@ export default function BonoForm() {
           ? parseInt(data.frecuenciaCapitalizacion)
           : undefined,
         plazo: parseInt(data.plazo),
-        nGracia: data.nGracia ? parseInt(data.nGracia) : 0,
+        nGracia: data.nGracia ? parseInt(data.nGracia) : undefined,
         comisionEmisor: parseFloat(data.comisionEmisor),
         comisionBonista: parseFloat(data.comisionBonista),
         tasaMercado: parseFloat(data.tasaMercado),
+        userId: firebaseUser.uid,
       };
 
       await saveBono(firebaseUser, transformedData);
       toast.success("¡Bono guardado correctamente!");
       form.reset();
+      router.push("/bonos/list");
     } catch (error) {
       console.error("Error al guardar:", error);
       toast.error("Ocurrió un error al guardar el bono.");

@@ -8,20 +8,29 @@ import {
   doc,
   query,
   where,
+  limit,
+  startAfter,
+  DocumentSnapshot,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Eye, Trash2, Pencil, Plus } from "lucide-react";
+import {
+  Loader2,
+  Eye,
+  Trash2,
+  Pencil,
+  Plus,
+  Search,
+  Download,
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { exportBonosToPDF } from "@/lib/exportUtils";
+import type { BonoData } from "@/lib/bonoUtils";
 
-interface Bono {
-  nombre: string;
-  moneda: string;
-  valorNominal: number;
-  plazo: number;
-  fechaEmision: string;
-}
+type Bono = BonoData;
 
 function formatCurrency(value: number, currency: string) {
   const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : "S/";
@@ -30,22 +39,29 @@ function formatCurrency(value: number, currency: string) {
   })}`;
 }
 
-function formatDate(date: string) {
-  const d = new Date(date);
-  return d.toLocaleDateString("es-PE");
+function formatDate(date: string | { seconds: number }) {
+  if (typeof date === "string") {
+    return new Date(date).toLocaleDateString("es-PE");
+  }
+  return new Date(date.seconds * 1000).toLocaleDateString("es-PE");
 }
+
+const BONOS_POR_PAGINA = 10;
 
 export default function BonosList() {
   const { firebaseUser } = useCurrentUser();
   const [bonos, setBonos] = useState<(Bono & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
+  const [hasMore, setHasMore] = useState(true);
   const router = useRouter();
 
   const eliminarBono = async (bonoId: string) => {
     if (!firebaseUser) return;
     const confirmacion = window.confirm(
-      "¿Seguro que deseas eliminar este bono?"
+      "¿Seguro que deseas eliminar este bono? Esta acción no se puede deshacer."
     );
     if (!confirmacion) return;
     setDeletingId(bonoId);
@@ -60,124 +76,217 @@ export default function BonosList() {
     }
   };
 
-  useEffect(() => {
+  const fetchBonos = async (isNewSearch = false) => {
     if (!firebaseUser) return;
+    setLoading(true);
 
-    const fetchBonos = async () => {
-      const bonosRef = collection(db, "bonds");
-      const q = query(bonosRef, where("userId", "==", firebaseUser.uid));
+    try {
+      let q = query(
+        collection(db, "bonds"),
+        where("userId", "==", firebaseUser.uid),
+        limit(BONOS_POR_PAGINA)
+      );
+
+      if (!isNewSearch && lastDoc) {
+        q = query(q, startAfter(lastDoc));
+      }
+
       const snapshot = await getDocs(q);
       const bonosData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as (Bono & { id: string })[];
 
-      setBonos(bonosData);
-      setLoading(false);
-    };
+      // Ordenar los bonos por fecha de creación en el cliente
+      const sortedBonos = bonosData.sort((a, b) => {
+        const dateA = typeof a.creadoEn === "object" ? a.creadoEn.seconds : 0;
+        const dateB = typeof b.creadoEn === "object" ? b.creadoEn.seconds : 0;
+        return dateB - dateA;
+      });
 
-    fetchBonos();
+      if (isNewSearch) {
+        setBonos(sortedBonos);
+      } else {
+        setBonos((prev) => [...prev, ...sortedBonos]);
+      }
+
+      setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+      setHasMore(snapshot.docs.length === BONOS_POR_PAGINA);
+    } catch (error) {
+      console.error("Error fetching bonos:", error);
+      toast.error("Error al cargar los bonos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBonos(true);
   }, [firebaseUser]);
 
-  if (loading)
-    return (
-      <div className="flex justify-center items-center py-12">
-        <Loader2 className="animate-spin h-6 w-6 text-blue-600 mr-2" />
-        <span className="text-blue-700 font-medium">Cargando bonos...</span>
-      </div>
-    );
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setLastDoc(null);
+    setHasMore(true);
+    fetchBonos(true);
+  };
+
+  const filteredBonos = bonos.filter((bono) =>
+    bono.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (!firebaseUser) {
     return <p className="p-6 text-center text-gray-500">Cargando sesión...</p>;
   }
 
-  if (bonos.length === 0)
-    return (
-      <div className="flex flex-col items-center py-12">
-        <p className="text-center text-gray-500 mb-4">
-          No hay bonos registrados.
-        </p>
-        <button
-          onClick={() => router.push("/bonos/register")}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition"
-        >
-          <Plus className="w-4 h-4" /> Registrar nuevo bono
-        </button>
-      </div>
-    );
-
   return (
-    <div className="overflow-x-auto">
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={() => router.push("/bonos/register")}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition"
-        >
-          <Plus className="w-4 h-4" /> Registrar nuevo bono
-        </button>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <div className="relative w-64">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+          <Input
+            placeholder="Buscar bonos..."
+            value={searchTerm}
+            onChange={handleSearch}
+            className="pl-8"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => exportBonosToPDF(bonos)}
+            disabled={bonos.length === 0}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Exportar PDF
+          </Button>
+          <Button
+            onClick={() => router.push("/bonos/register")}
+            className="inline-flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" /> Registrar nuevo bono
+          </Button>
+        </div>
       </div>
-      <table className="min-w-full bg-white border border-gray-200 rounded-xl shadow-md">
-        <thead className="bg-blue-50 text-gray-800">
-          <tr>
-            <th className="px-4 py-3 text-left font-semibold">Nombre</th>
-            <th className="px-4 py-3 text-left font-semibold">Moneda</th>
-            <th className="px-4 py-3 text-left font-semibold">VN</th>
-            <th className="px-4 py-3 text-left font-semibold">Plazo</th>
-            <th className="px-4 py-3 text-left font-semibold">Fecha Emisión</th>
-            <th className="px-4 py-3 text-left font-semibold">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {bonos.map((bono) => (
-            <tr
-              key={bono.id}
-              className="border-t hover:bg-blue-50 transition group"
+
+      {loading && bonos.length === 0 ? (
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="animate-spin h-6 w-6 text-blue-600 mr-2" />
+          <span className="text-blue-700 font-medium">Cargando bonos...</span>
+        </div>
+      ) : filteredBonos.length === 0 ? (
+        <div className="flex flex-col items-center py-12">
+          <p className="text-center text-gray-500 mb-4">
+            {searchTerm
+              ? "No se encontraron bonos que coincidan con la búsqueda."
+              : "No hay bonos registrados."}
+          </p>
+          {!searchTerm && (
+            <Button
+              onClick={() => router.push("/bonos/register")}
+              className="inline-flex items-center gap-2"
             >
-              <td className="px-4 py-3 font-medium text-gray-900">
-                {bono.nombre}
-              </td>
-              <td className="px-4 py-3">{bono.moneda}</td>
-              <td className="px-4 py-3">
-                {formatCurrency(bono.valorNominal, bono.moneda)}
-              </td>
-              <td className="px-4 py-3">{bono.plazo} años</td>
-              <td className="px-4 py-3">{formatDate(bono.fechaEmision)}</td>
-              <td className="px-4 py-3 flex gap-2 items-center">
-                <button
-                  title="Ver detalle"
-                  onClick={() => router.push(`/bonos/detail/${bono.id}`)}
-                  className="p-2 rounded hover:bg-blue-100 text-blue-600 transition"
-                >
-                  <Eye className="w-4 h-4" />
-                </button>
-                <button
-                  title="Editar"
-                  onClick={() => router.push(`/bonos/edit/${bono.id}`)}
-                  className="p-2 rounded hover:bg-green-100 text-green-600 transition"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button
-                  title="Eliminar"
-                  onClick={() => eliminarBono(bono.id)}
-                  className={`p-2 rounded hover:bg-red-100 text-red-600 transition ${
-                    deletingId === bono.id
-                      ? "opacity-50 pointer-events-none"
-                      : ""
-                  }`}
-                  disabled={deletingId === bono.id}
-                >
-                  {deletingId === bono.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4" />
-                  )}
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              <Plus className="w-4 h-4" /> Registrar nuevo bono
+            </Button>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-blue-50 text-gray-800">
+                <tr>
+                  <th className="px-4 py-3 text-left font-semibold">Nombre</th>
+                  <th className="px-4 py-3 text-left font-semibold">Moneda</th>
+                  <th className="px-4 py-3 text-left font-semibold">VN</th>
+                  <th className="px-4 py-3 text-left font-semibold">Plazo</th>
+                  <th className="px-4 py-3 text-left font-semibold">
+                    Fecha Emisión
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredBonos.map((bono) => (
+                  <tr
+                    key={bono.id}
+                    className="border-t hover:bg-blue-50 transition group"
+                  >
+                    <td className="px-4 py-3 font-medium text-gray-900">
+                      {bono.nombre}
+                    </td>
+                    <td className="px-4 py-3">{bono.moneda}</td>
+                    <td className="px-4 py-3">
+                      {formatCurrency(bono.valorNominal, bono.moneda)}
+                    </td>
+                    <td className="px-4 py-3">{bono.plazo} años</td>
+                    <td className="px-4 py-3">
+                      {formatDate(bono.fechaEmision)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2">
+                        <button
+                          title="Ver detalle"
+                          onClick={() =>
+                            router.push(`/bonos/detail/${bono.id}`)
+                          }
+                          className="p-2 rounded hover:bg-blue-100 text-blue-600 transition"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          title="Editar"
+                          onClick={() => router.push(`/bonos/edit/${bono.id}`)}
+                          className="p-2 rounded hover:bg-green-100 text-green-600 transition"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          title="Eliminar"
+                          onClick={() => eliminarBono(bono.id)}
+                          className={`p-2 rounded hover:bg-red-100 text-red-600 transition ${
+                            deletingId === bono.id
+                              ? "opacity-50 pointer-events-none"
+                              : ""
+                          }`}
+                          disabled={deletingId === bono.id}
+                        >
+                          {deletingId === bono.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {hasMore && (
+            <div className="flex justify-center mt-4">
+              <Button
+                variant="outline"
+                onClick={() => fetchBonos(false)}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Cargando...
+                  </>
+                ) : (
+                  "Cargar más"
+                )}
+              </Button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
