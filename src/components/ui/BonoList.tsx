@@ -5,6 +5,8 @@ import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Loader2, Eye, Trash2, Pencil, Plus } from "lucide-react";
 
 interface Bono {
   nombre: string;
@@ -14,10 +16,23 @@ interface Bono {
   fechaEmision: string;
 }
 
+function formatCurrency(value: number, currency: string) {
+  const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : "S/";
+  return `${symbol} ${value.toLocaleString("es-PE", {
+    minimumFractionDigits: 2,
+  })}`;
+}
+
+function formatDate(date: string) {
+  const d = new Date(date);
+  return d.toLocaleDateString("es-PE");
+}
+
 export default function BonosList() {
   const { firebaseUser } = useCurrentUser();
   const [bonos, setBonos] = useState<(Bono & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const router = useRouter();
 
   const eliminarBono = async (bonoId: string) => {
@@ -26,9 +41,16 @@ export default function BonosList() {
       "¿Seguro que deseas eliminar este bono?"
     );
     if (!confirmacion) return;
-
-    await deleteDoc(doc(db, "usuarios", firebaseUser.uid, "bonos", bonoId));
-    setBonos((prev) => prev.filter((b) => b.id !== bonoId));
+    setDeletingId(bonoId);
+    try {
+      await deleteDoc(doc(db, "usuarios", firebaseUser.uid, "bonos", bonoId));
+      setBonos((prev) => prev.filter((b) => b.id !== bonoId));
+      toast.success("Bono eliminado correctamente");
+    } catch {
+      toast.error("Error al eliminar el bono");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   useEffect(() => {
@@ -49,56 +71,99 @@ export default function BonosList() {
     fetchBonos();
   }, [firebaseUser]);
 
-  if (loading) return <p className="text-center">Cargando bonos...</p>;
+  if (loading)
+    return (
+      <div className="flex justify-center items-center py-12">
+        <Loader2 className="animate-spin h-6 w-6 text-blue-600 mr-2" />
+        <span className="text-blue-700 font-medium">Cargando bonos...</span>
+      </div>
+    );
 
   if (!firebaseUser) {
     return <p className="p-6 text-center text-gray-500">Cargando sesión...</p>;
   }
 
   if (bonos.length === 0)
-    return <p className="text-center">No hay bonos registrados.</p>;
+    return (
+      <div className="flex flex-col items-center py-12">
+        <p className="text-center text-gray-500 mb-4">
+          No hay bonos registrados.
+        </p>
+        <button
+          onClick={() => router.push("/bonos/register")}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition"
+        >
+          <Plus className="w-4 h-4" /> Registrar nuevo bono
+        </button>
+      </div>
+    );
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full bg-white border border-gray-300 rounded-md shadow-sm">
-        <thead className="bg-blue-100 text-gray-800">
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={() => router.push("/bonos/register")}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition"
+        >
+          <Plus className="w-4 h-4" /> Registrar nuevo bono
+        </button>
+      </div>
+      <table className="min-w-full bg-white border border-gray-200 rounded-xl shadow-md">
+        <thead className="bg-blue-50 text-gray-800">
           <tr>
-            <th className="px-4 py-2 text-left">Nombre</th>
-            <th className="px-4 py-2 text-left">Moneda</th>
-            <th className="px-4 py-2 text-left">VN</th>
-            <th className="px-4 py-2 text-left">Plazo</th>
-            <th className="px-4 py-2 text-left">Fecha Emisión</th>
-            <th className="px-4 py-2 text-left">Acciones</th>
+            <th className="px-4 py-3 text-left font-semibold">Nombre</th>
+            <th className="px-4 py-3 text-left font-semibold">Moneda</th>
+            <th className="px-4 py-3 text-left font-semibold">VN</th>
+            <th className="px-4 py-3 text-left font-semibold">Plazo</th>
+            <th className="px-4 py-3 text-left font-semibold">Fecha Emisión</th>
+            <th className="px-4 py-3 text-left font-semibold">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          {bonos.map((bono, i) => (
-            <tr key={i} className="border-t">
-              <td className="px-4 py-2">{bono.nombre}</td>
-              <td className="px-4 py-2">{bono.moneda}</td>
-              <td className="px-4 py-2">
-                {bono.valorNominal.toLocaleString()}
+          {bonos.map((bono) => (
+            <tr
+              key={bono.id}
+              className="border-t hover:bg-blue-50 transition group"
+            >
+              <td className="px-4 py-3 font-medium text-gray-900">
+                {bono.nombre}
               </td>
-              <td className="px-4 py-2">{bono.plazo} años</td>
-              <td className="px-4 py-2">{bono.fechaEmision}</td>
-              <td className="px-4 py-2 space-x-2">
+              <td className="px-4 py-3">{bono.moneda}</td>
+              <td className="px-4 py-3">
+                {formatCurrency(bono.valorNominal, bono.moneda)}
+              </td>
+              <td className="px-4 py-3">{bono.plazo} años</td>
+              <td className="px-4 py-3">{formatDate(bono.fechaEmision)}</td>
+              <td className="px-4 py-3 flex gap-2 items-center">
                 <button
+                  title="Ver detalle"
                   onClick={() => router.push(`/bonos/detail/${bono.id}`)}
-                  className="text-blue-600 hover:underline"
+                  className="p-2 rounded hover:bg-blue-100 text-blue-600 transition"
                 >
-                  Ver detalle
+                  <Eye className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => eliminarBono(bono.id)}
-                  className="text-red-600 hover:underline"
-                >
-                  Eliminar
-                </button>
-                <button
+                  title="Editar"
                   onClick={() => router.push(`/bonos/edit/${bono.id}`)}
-                  className="text-green-600 hover:underline"
+                  className="p-2 rounded hover:bg-green-100 text-green-600 transition"
                 >
-                  Editar
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  title="Eliminar"
+                  onClick={() => eliminarBono(bono.id)}
+                  className={`p-2 rounded hover:bg-red-100 text-red-600 transition ${
+                    deletingId === bono.id
+                      ? "opacity-50 pointer-events-none"
+                      : ""
+                  }`}
+                  disabled={deletingId === bono.id}
+                >
+                  {deletingId === bono.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
                 </button>
               </td>
             </tr>
