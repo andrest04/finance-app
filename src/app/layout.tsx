@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Toaster } from "sonner";
 import "./globals.css";
 import LayoutWithSidebar from "./LayoutWithSidebar";
 import { AuthProvider } from "@/context/AuthContext";
@@ -35,6 +36,7 @@ export default function RootLayout({
 
         <Analytics />
         <SpeedInsights />
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   );

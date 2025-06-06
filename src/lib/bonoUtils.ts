@@ -17,14 +17,16 @@ export interface BonoData {
   comisionEmisor: number;
   comisionBonista: number;
   tasaMercado: number;
+  userId: string;
   creadoEn?: { seconds: number };
 }
 
 export async function saveBono(user: User, data: BonoData) {
   try {
-    const ref = collection(db, "usuarios", user.uid, "bonos");
+    const ref = collection(db, "bonds");
     const bonoGuardado = {
       ...data,
+      userId: user.uid,
       creadoEn: Timestamp.now(),
     };
     await addDoc(ref, bonoGuardado);
