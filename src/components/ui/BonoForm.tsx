@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -13,107 +13,185 @@ import {
 } from "@/components/ui/select";
 import { saveBono } from "@/lib/bonoUtils";
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+const bonoFormSchema = z.object({
+  nombre: z.string().min(1, "El nombre es requerido"),
+  valorNominal: z.string().min(1, "El valor nominal es requerido"),
+  moneda: z.string().min(1, "La moneda es requerida"),
+  tipoTasa: z.string().min(1, "El tipo de tasa es requerido"),
+  tasaAnual: z.string().min(1, "La tasa anual es requerida"),
+  frecuenciaPago: z.string().min(1, "La frecuencia de pago es requerida"),
+  frecuenciaCapitalizacion: z.string().optional(),
+  plazo: z.string().min(1, "El plazo es requerido"),
+  tipoGracia: z.string().min(1, "El tipo de gracia es requerido"),
+  nGracia: z.string().optional(),
+  fechaEmision: z.string().min(1, "La fecha de emisión es requerida"),
+  comisionEmisor: z.string().min(1, "La comisión del emisor es requerida"),
+  comisionBonista: z.string().min(1, "La comisión del bonista es requerida"),
+  tasaMercado: z.string().min(1, "La tasa de mercado es requerida"),
+});
+
+type BonoFormData = z.infer<typeof bonoFormSchema>;
 
 export default function BonoForm() {
   const { firebaseUser } = useCurrentUser();
-  const [form, setForm] = useState({
-    nombre: "",
-    valorNominal: "",
-    moneda: "",
-    tipoTasa: "",
-    tasaAnual: "",
-    frecuenciaPago: "",
-    frecuenciaCapitalizacion: "",
-    plazo: "",
-    tipoGracia: "",
-    nGracia: "",
-    fechaEmision: "",
-    comisionEmisor: "",
-    comisionBonista: "",
-    tasaMercado: "",
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userCurrency, setUserCurrency] = useState("PEN");
+
+  useEffect(() => {
+    const loadUserSettings = async () => {
+      if (!firebaseUser) return;
+
+      try {
+        const settingsRef = doc(
+          db,
+          "users",
+          firebaseUser.uid,
+          "settings",
+          "preferences"
+        );
+        const settingsDoc = await getDoc(settingsRef);
+
+        if (settingsDoc.exists()) {
+          const settings = settingsDoc.data();
+          setUserCurrency(settings.currency || "PEN");
+        }
+      } catch (error) {
+        console.error("Error loading user settings:", error);
+      }
+    };
+
+    loadUserSettings();
+  }, [firebaseUser]);
+
+  const form = useForm<BonoFormData>({
+    resolver: zodResolver(bonoFormSchema),
+    defaultValues: {
+      nombre: "",
+      valorNominal: "",
+      moneda: userCurrency,
+      tipoTasa: "",
+      tasaAnual: "",
+      frecuenciaPago: "ANUAL",
+      frecuenciaCapitalizacion: "",
+      plazo: "",
+      tipoGracia: "",
+      nGracia: "",
+      fechaEmision: new Date().toISOString().split("T")[0],
+      comisionEmisor: "",
+      comisionBonista: "",
+      tasaMercado: "",
+    },
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const tipoTasa = form.watch("tipoTasa");
+  const tipoGracia = form.watch("tipoGracia");
 
-  const handleSelect = (name: string, value: string) => {
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: BonoFormData) => {
     if (!firebaseUser) {
-      alert("Debes iniciar sesión para registrar un bono.");
+      toast.error("Debes iniciar sesión para registrar un bono.");
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      const formNum = {
-        ...form,
-        valorNominal: parseFloat(form.valorNominal),
-        tasaAnual: parseFloat(form.tasaAnual),
-        frecuenciaPago: parseInt(form.frecuenciaPago),
-        frecuenciaCapitalizacion: form.frecuenciaCapitalizacion
-          ? parseInt(form.frecuenciaCapitalizacion)
+      const transformedData = {
+        ...data,
+        valorNominal: parseFloat(data.valorNominal),
+        tasaAnual: parseFloat(data.tasaAnual),
+        frecuenciaPago: parseInt(data.frecuenciaPago),
+        frecuenciaCapitalizacion: data.frecuenciaCapitalizacion
+          ? parseInt(data.frecuenciaCapitalizacion)
           : undefined,
-        plazo: parseInt(form.plazo),
-        nGracia: form.nGracia ? parseInt(form.nGracia) : undefined,
-        comisionEmisor: parseFloat(form.comisionEmisor),
-        comisionBonista: parseFloat(form.comisionBonista),
-        tasaMercado: parseFloat(form.tasaMercado),
+        plazo: parseInt(data.plazo),
+        nGracia: data.nGracia ? parseInt(data.nGracia) : 0,
+        comisionEmisor: parseFloat(data.comisionEmisor),
+        comisionBonista: parseFloat(data.comisionBonista),
+        tasaMercado: parseFloat(data.tasaMercado),
       };
 
-      await saveBono(firebaseUser, formNum);
-      alert("¡Bono guardado correctamente!");
+      await saveBono(firebaseUser, transformedData);
+      toast.success("¡Bono guardado correctamente!");
+      form.reset();
     } catch (error) {
       console.error("Error al guardar:", error);
-      alert("Ocurrió un error al guardar el bono.");
+      toast.error("Ocurrió un error al guardar el bono.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 max-w-6xl mx-auto">
+    <form
+      onSubmit={form.handleSubmit(onSubmit)}
+      className="space-y-8 max-w-6xl mx-auto"
+    >
       {/* DATOS BÁSICOS */}
-      <section className="border border-blue-300 rounded-md p-4 space-y-4">
-        <h3 className="text-blue-700 font-semibold">Datos Básicos</h3>
+      <section className="border border-blue-300 rounded-md p-4 space-y-4 bg-white shadow-sm">
+        <h3 className="text-blue-700 font-semibold text-lg">Datos Básicos</h3>
         <div className="grid md:grid-cols-3 gap-4">
-          <div>
+          <div className="space-y-2">
             <Label>Nombre del Bono</Label>
-            <Input name="nombre" value={form.nombre} onChange={handleChange} />
+            <Input {...form.register("nombre")} />
+            {form.formState.errors.nombre && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.nombre.message}
+              </p>
+            )}
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Valor Nominal (VN)</Label>
             <Input
-              name="valorNominal"
+              {...form.register("valorNominal")}
               type="number"
-              value={form.valorNominal}
-              onChange={handleChange}
+              step="0.01"
             />
+            {form.formState.errors.valorNominal && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.valorNominal.message}
+              </p>
+            )}
           </div>
-          <div>
-            <Label>Moneda</Label>
-            <Select onValueChange={(val) => handleSelect("moneda", val)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona moneda" />
+          <div className="space-y-2">
+            <Label htmlFor="moneda">Moneda</Label>
+            <Select
+              value={form.watch("moneda")}
+              onValueChange={(value) => form.setValue("moneda", value)}
+            >
+              <SelectTrigger id="moneda">
+                <SelectValue placeholder="Selecciona una moneda" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="PEN">PEN</SelectItem>
-                <SelectItem value="USD">USD</SelectItem>
-                <SelectItem value="EUR">EUR</SelectItem>
+                <SelectItem value="PEN">Soles (PEN)</SelectItem>
+                <SelectItem value="USD">Dólares (USD)</SelectItem>
+                <SelectItem value="EUR">Euros (EUR)</SelectItem>
               </SelectContent>
             </Select>
+            {form.formState.errors.moneda && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.moneda.message}
+              </p>
+            )}
           </div>
         </div>
       </section>
 
       {/* TASA Y FRECUENCIA */}
-      <section className="border border-blue-300 rounded-md p-4 space-y-4">
-        <h3 className="text-blue-700 font-semibold">Tasa y Frecuencia</h3>
+      <section className="border border-blue-300 rounded-md p-4 space-y-4 bg-white shadow-sm">
+        <h3 className="text-blue-700 font-semibold text-lg">
+          Tasa y Frecuencia
+        </h3>
         <div className="grid md:grid-cols-3 gap-4">
-          <div>
+          <div className="space-y-2">
             <Label>Tipo de Tasa</Label>
-            <Select onValueChange={(val) => handleSelect("tipoTasa", val)}>
+            <Select onValueChange={(val) => form.setValue("tipoTasa", val)}>
               <SelectTrigger>
                 <SelectValue placeholder="Nominal o Efectiva" />
               </SelectTrigger>
@@ -122,20 +200,25 @@ export default function BonoForm() {
                 <SelectItem value="Efectiva">Efectiva</SelectItem>
               </SelectContent>
             </Select>
+            {form.formState.errors.tipoTasa && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.tipoTasa.message}
+              </p>
+            )}
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Tasa Anual (%)</Label>
-            <Input
-              name="tasaAnual"
-              type="number"
-              value={form.tasaAnual}
-              onChange={handleChange}
-            />
+            <Input {...form.register("tasaAnual")} type="number" step="0.01" />
+            {form.formState.errors.tasaAnual && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.tasaAnual.message}
+              </p>
+            )}
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Frecuencia de Pago (f)</Label>
             <Select
-              onValueChange={(val) => handleSelect("frecuenciaPago", val)}
+              onValueChange={(val) => form.setValue("frecuenciaPago", val)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Frecuencia" />
@@ -149,13 +232,18 @@ export default function BonoForm() {
                 <SelectItem value="1">Anual</SelectItem>
               </SelectContent>
             </Select>
+            {form.formState.errors.frecuenciaPago && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.frecuenciaPago.message}
+              </p>
+            )}
           </div>
-          {form.tipoTasa === "Nominal" && (
-            <div className="md:col-span-1">
+          {tipoTasa === "Nominal" && (
+            <div className="space-y-2">
               <Label>Capitalización</Label>
               <Select
                 onValueChange={(val) =>
-                  handleSelect("frecuenciaCapitalizacion", val)
+                  form.setValue("frecuenciaCapitalizacion", val)
                 }
               >
                 <SelectTrigger>
@@ -171,27 +259,32 @@ export default function BonoForm() {
                   <SelectItem value="1">Anual</SelectItem>
                 </SelectContent>
               </Select>
+              {form.formState.errors.frecuenciaCapitalizacion && (
+                <p className="text-sm text-red-500">
+                  {form.formState.errors.frecuenciaCapitalizacion.message}
+                </p>
+              )}
             </div>
           )}
         </div>
       </section>
 
       {/* PLAZO Y GRACIA */}
-      <section className="border border-blue-300 rounded-md p-4 space-y-4">
-        <h3 className="text-blue-700 font-semibold">Plazo y Gracia</h3>
+      <section className="border border-blue-300 rounded-md p-4 space-y-4 bg-white shadow-sm">
+        <h3 className="text-blue-700 font-semibold text-lg">Plazo y Gracia</h3>
         <div className="grid md:grid-cols-3 gap-4">
-          <div>
+          <div className="space-y-2">
             <Label>Plazo (años)</Label>
-            <Input
-              name="plazo"
-              type="number"
-              value={form.plazo}
-              onChange={handleChange}
-            />
+            <Input {...form.register("plazo")} type="number" />
+            {form.formState.errors.plazo && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.plazo.message}
+              </p>
+            )}
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Tipo de Gracia</Label>
-            <Select onValueChange={(val) => handleSelect("tipoGracia", val)}>
+            <Select onValueChange={(val) => form.setValue("tipoGracia", val)}>
               <SelectTrigger>
                 <SelectValue placeholder="Tipo de gracia" />
               </SelectTrigger>
@@ -201,60 +294,79 @@ export default function BonoForm() {
                 <SelectItem value="Total">Total</SelectItem>
               </SelectContent>
             </Select>
+            {form.formState.errors.tipoGracia && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.tipoGracia.message}
+              </p>
+            )}
           </div>
-          {(form.tipoGracia === "Parcial" || form.tipoGracia === "Total") && (
-            <div>
+          {(tipoGracia === "Parcial" || tipoGracia === "Total") && (
+            <div className="space-y-2">
               <Label>N° Períodos de Gracia</Label>
-              <Input
-                name="nGracia"
-                type="number"
-                value={form.nGracia}
-                onChange={handleChange}
-              />
+              <Input {...form.register("nGracia")} type="number" />
+              {form.formState.errors.nGracia && (
+                <p className="text-sm text-red-500">
+                  {form.formState.errors.nGracia.message}
+                </p>
+              )}
             </div>
           )}
-          <div>
+          <div className="space-y-2">
             <Label>Fecha de Emisión</Label>
-            <Input
-              name="fechaEmision"
-              type="date"
-              value={form.fechaEmision}
-              onChange={handleChange}
-            />
+            <Input {...form.register("fechaEmision")} type="date" />
+            {form.formState.errors.fechaEmision && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.fechaEmision.message}
+              </p>
+            )}
           </div>
         </div>
       </section>
 
       {/* COSTOS Y TASAS DE DESCUENTO */}
-      <section className="border border-blue-300 rounded-md p-4 space-y-4">
-        <h3 className="text-blue-700 font-semibold">Costos y Descuento</h3>
+      <section className="border border-blue-300 rounded-md p-4 space-y-4 bg-white shadow-sm">
+        <h3 className="text-blue-700 font-semibold text-lg">
+          Costos y Descuento
+        </h3>
         <div className="grid md:grid-cols-3 gap-4">
-          <div>
+          <div className="space-y-2">
             <Label>Comisión Emisor (%)</Label>
             <Input
-              name="comisionEmisor"
+              {...form.register("comisionEmisor")}
               type="number"
-              value={form.comisionEmisor}
-              onChange={handleChange}
+              step="0.01"
             />
+            {form.formState.errors.comisionEmisor && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.comisionEmisor.message}
+              </p>
+            )}
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Comisión Bonista (%)</Label>
             <Input
-              name="comisionBonista"
+              {...form.register("comisionBonista")}
               type="number"
-              value={form.comisionBonista}
-              onChange={handleChange}
+              step="0.01"
             />
+            {form.formState.errors.comisionBonista && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.comisionBonista.message}
+              </p>
+            )}
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Tasa Mercado (TREA)</Label>
             <Input
-              name="tasaMercado"
+              {...form.register("tasaMercado")}
               type="number"
-              value={form.tasaMercado}
-              onChange={handleChange}
+              step="0.01"
             />
+            {form.formState.errors.tasaMercado && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.tasaMercado.message}
+              </p>
+            )}
           </div>
         </div>
       </section>
@@ -264,11 +376,21 @@ export default function BonoForm() {
         <Button
           variant="outline"
           type="button"
-          onClick={() => console.log("Cancelado")}
+          onClick={() => form.reset()}
+          disabled={isSubmitting}
         >
           Cancelar
         </Button>
-        <Button type="submit">Guardar Bono</Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Guardando...
+            </>
+          ) : (
+            "Guardar Bono"
+          )}
+        </Button>
       </div>
     </form>
   );
