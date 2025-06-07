@@ -15,6 +15,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { Loader2 } from "lucide-react";
+import ProtectedRoute from "@/components/RouteGuard";
 
 export default function SettingsPage() {
   const { firebaseUser } = useCurrentUser();
@@ -86,44 +87,46 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-8">Configuración</h1>
-      <div className="grid gap-8">
-        {/* Preferencias */}
-        <section className="bg-white rounded-lg shadow-sm border p-6">
-          <h2 className="text-2xl font-semibold mb-6">Preferencias</h2>
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="currency">Moneda</Label>
-              <Select
-                value={settings.currency}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, currency: value })
-                }
-              >
-                <SelectTrigger id="currency">
-                  <SelectValue placeholder="Selecciona una moneda" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PEN">Soles (PEN)</SelectItem>
-                  <SelectItem value="USD">Dólares (USD)</SelectItem>
-                  <SelectItem value="EUR">Euros (EUR)</SelectItem>
-                </SelectContent>
-              </Select>
+    <ProtectedRoute requiredRole={undefined}>
+      <div className="max-w-4xl mx-auto p-6">
+        <h1 className="text-3xl font-bold mb-8">Configuración</h1>
+        <div className="grid gap-8">
+          {/* Preferencias */}
+          <section className="bg-white rounded-lg shadow-sm border p-6">
+            <h2 className="text-2xl font-semibold mb-6">Preferencias</h2>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="currency">Moneda</Label>
+                <Select
+                  value={settings.currency}
+                  onValueChange={(value) =>
+                    setSettings({ ...settings, currency: value })
+                  }
+                >
+                  <SelectTrigger id="currency">
+                    <SelectValue placeholder="Selecciona una moneda" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PEN">Soles (PEN)</SelectItem>
+                    <SelectItem value="USD">Dólares (USD)</SelectItem>
+                    <SelectItem value="EUR">Euros (EUR)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+          </section>
+          {/* Acciones */}
+          <div className="flex justify-end space-x-4">
+            <Button
+              variant="outline"
+              onClick={() => setSettings({ currency: "PEN" })}
+            >
+              Restaurar valores predeterminados
+            </Button>
+            <Button onClick={handleSave}>Guardar cambios</Button>
           </div>
-        </section>
-        {/* Acciones */}
-        <div className="flex justify-end space-x-4">
-          <Button
-            variant="outline"
-            onClick={() => setSettings({ currency: "PEN" })}
-          >
-            Restaurar valores predeterminados
-          </Button>
-          <Button onClick={handleSave}>Guardar cambios</Button>
         </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }

@@ -9,6 +9,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "sonner";
 import Image from "next/image";
+import ProtectedRoute from "@/components/RouteGuard";
 
 export default function ProfilePage() {
   const { profile, firebaseUser } = useCurrentUser();
@@ -38,95 +39,97 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-8">Mi Perfil</h1>
+    <ProtectedRoute requiredRole={undefined}>
+      <div className="max-w-4xl mx-auto p-6">
+        <h1 className="text-3xl font-bold mb-8">Mi Perfil</h1>
 
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <div className="flex items-center gap-6 mb-8">
-          <div className="relative">
-            {firebaseUser?.photoURL ? (
-              <Image
-                src={firebaseUser.photoURL}
-                alt="Perfil"
-                width={120}
-                height={120}
-                className="rounded-full border-4 border-blue-100 object-cover"
-              />
-            ) : (
-              <Image
-                src="/avatar.png"
-                alt="Avatar por defecto"
-                width={120}
-                height={120}
-                className="rounded-full border-4 border-blue-100 object-cover"
-              />
-            )}
-          </div>
-          <div>
-            <h2 className="text-2xl font-semibold">
-              {profile
-                ? `${profile.firstName} ${profile.lastName}`
-                : "Cargando..."}
-            </h2>
-            <p className="text-gray-600">{firebaseUser?.email}</p>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>Nombre</Label>
-              <Input
-                value={formData.firstName}
-                onChange={(e) =>
-                  setFormData({ ...formData, firstName: e.target.value })
-                }
-                disabled={!isEditing}
-              />
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="flex items-center gap-6 mb-8">
+            <div className="relative">
+              {firebaseUser?.photoURL ? (
+                <Image
+                  src={firebaseUser.photoURL}
+                  alt="Perfil"
+                  width={120}
+                  height={120}
+                  className="rounded-full border-4 border-blue-100 object-cover"
+                />
+              ) : (
+                <Image
+                  src="/avatar.png"
+                  alt="Avatar por defecto"
+                  width={120}
+                  height={120}
+                  className="rounded-full border-4 border-blue-100 object-cover"
+                />
+              )}
             </div>
-            <div className="space-y-2">
-              <Label>Apellido</Label>
-              <Input
-                value={formData.lastName}
-                onChange={(e) =>
-                  setFormData({ ...formData, lastName: e.target.value })
-                }
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Correo electrónico</Label>
-              <Input value={formData.email} disabled />
+            <div>
+              <h2 className="text-2xl font-semibold">
+                {profile
+                  ? `${profile.firstName} ${profile.lastName}`
+                  : "Cargando..."}
+              </h2>
+              <p className="text-gray-600">{firebaseUser?.email}</p>
             </div>
           </div>
 
-          <div className="flex justify-end gap-4">
-            {isEditing ? (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setIsEditing(false);
-                    setFormData({
-                      firstName: profile?.firstName || "",
-                      lastName: profile?.lastName || "",
-                      email: firebaseUser?.email || "",
-                    });
-                  }}
-                >
-                  Cancelar
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label>Nombre</Label>
+                <Input
+                  value={formData.firstName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, firstName: e.target.value })
+                  }
+                  disabled={!isEditing}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Apellido</Label>
+                <Input
+                  value={formData.lastName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, lastName: e.target.value })
+                  }
+                  disabled={!isEditing}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Correo electrónico</Label>
+                <Input value={formData.email} disabled />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-4">
+              {isEditing ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditing(false);
+                      setFormData({
+                        firstName: profile?.firstName || "",
+                        lastName: profile?.lastName || "",
+                        email: firebaseUser?.email || "",
+                      });
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit">Guardar cambios</Button>
+                </>
+              ) : (
+                <Button type="button" onClick={() => setIsEditing(true)}>
+                  Editar perfil
                 </Button>
-                <Button type="submit">Guardar cambios</Button>
-              </>
-            ) : (
-              <Button type="button" onClick={() => setIsEditing(true)}>
-                Editar perfil
-              </Button>
-            )}
-          </div>
-        </form>
+              )}
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }

@@ -49,7 +49,7 @@ function formatDate(date: string | { seconds: number }) {
 const BONOS_POR_PAGINA = 10;
 
 export default function BonosList() {
-  const { firebaseUser } = useCurrentUser();
+  const { firebaseUser, profile } = useCurrentUser();
   const [bonos, setBonos] = useState<(Bono & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -81,11 +81,16 @@ export default function BonosList() {
     setLoading(true);
 
     try {
-      let q = query(
-        collection(db, "bonds"),
-        where("userId", "==", firebaseUser.uid),
-        limit(BONOS_POR_PAGINA)
-      );
+      let q;
+      if (profile?.role === "inversionista") {
+        q = query(collection(db, "bonds"), limit(BONOS_POR_PAGINA));
+      } else {
+        q = query(
+          collection(db, "bonds"),
+          where("userId", "==", firebaseUser.uid),
+          limit(BONOS_POR_PAGINA)
+        );
+      }
 
       if (!isNewSearch && lastDoc) {
         q = query(q, startAfter(lastDoc));
@@ -198,11 +203,21 @@ export default function BonosList() {
                 <tr>
                   <th className="px-4 py-3 text-left font-semibold">Nombre</th>
                   <th className="px-4 py-3 text-left font-semibold">Moneda</th>
-                  <th className="px-4 py-3 text-left font-semibold">VN</th>
+                  <th className="px-4 py-3 text-left font-semibold">
+                    Valor Nominal
+                  </th>
                   <th className="px-4 py-3 text-left font-semibold">Plazo</th>
+                  <th className="px-4 py-3 text-left font-semibold">
+                    Tasa Anual
+                  </th>
                   <th className="px-4 py-3 text-left font-semibold">
                     Fecha Emisión
                   </th>
+                  {profile?.role === "inversionista" && (
+                    <th className="px-4 py-3 text-left font-semibold">
+                      Emisor
+                    </th>
+                  )}
                   <th className="px-4 py-3 text-left font-semibold">
                     Acciones
                   </th>
@@ -212,54 +227,57 @@ export default function BonosList() {
                 {filteredBonos.map((bono) => (
                   <tr
                     key={bono.id}
-                    className="border-t hover:bg-blue-50 transition group"
+                    className="border-b hover:bg-blue-50 transition"
                   >
-                    <td className="px-4 py-3 font-medium text-gray-900">
-                      {bono.nombre}
-                    </td>
-                    <td className="px-4 py-3">{bono.moneda}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2">{bono.nombre}</td>
+                    <td className="px-4 py-2">{bono.moneda}</td>
+                    <td className="px-4 py-2">
                       {formatCurrency(bono.valorNominal, bono.moneda)}
                     </td>
-                    <td className="px-4 py-3">{bono.plazo} años</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2">{bono.plazo} años</td>
+                    <td className="px-4 py-2">{bono.tasaAnual}%</td>
+                    <td className="px-4 py-2">
                       {formatDate(bono.fechaEmision)}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button
-                          title="Ver detalle"
-                          onClick={() =>
-                            router.push(`/bonos/detail/${bono.id}`)
-                          }
-                          className="p-2 rounded hover:bg-blue-100 text-blue-600 transition"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          title="Editar"
-                          onClick={() => router.push(`/bonos/edit/${bono.id}`)}
-                          className="p-2 rounded hover:bg-green-100 text-green-600 transition"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          title="Eliminar"
-                          onClick={() => eliminarBono(bono.id)}
-                          className={`p-2 rounded hover:bg-red-100 text-red-600 transition ${
-                            deletingId === bono.id
-                              ? "opacity-50 pointer-events-none"
-                              : ""
-                          }`}
-                          disabled={deletingId === bono.id}
-                        >
-                          {deletingId === bono.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
+                    {profile?.role === "inversionista" && (
+                      <td className="px-4 py-2">{bono.emisorNombre || "-"}</td>
+                    )}
+                    <td className="px-4 py-2 flex gap-2">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => router.push(`/bonos/detail/${bono.id}`)}
+                        title="Ver Detalle"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      {profile?.role !== "inversionista" && (
+                        <>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() =>
+                              router.push(`/bonos/edit/${bono.id}`)
+                            }
+                            title="Editar"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => eliminarBono(bono.id)}
+                            title="Eliminar"
+                            disabled={deletingId === bono.id}
+                          >
+                            {deletingId === bono.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -28,17 +28,11 @@ export default function EditarBonoPage() {
     if (!firebaseUser || !id) return;
     const ref = doc(db, "bonds", String(id));
     getDoc(ref).then((snap) => {
-      if (snap.exists()) {
-        const data = snap.data() as Partial<BonoData>;
-        if (data.userId === firebaseUser.uid) {
-          setForm(data);
-        } else {
-          alert("No tienes permiso para editar este bono.");
-          router.push("/bonos/list");
-        }
+      if (!snap.exists() || snap.data().userId !== firebaseUser.uid) {
+        router.replace("/bonos/list");
       } else {
-        alert("El bono no existe.");
-        router.push("/bonos/list");
+        const data = snap.data() as Partial<BonoData>;
+        setForm(data);
       }
     });
   }, [firebaseUser, id, router]);
