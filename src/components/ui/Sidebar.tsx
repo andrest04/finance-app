@@ -76,7 +76,7 @@ export default function Sidebar() {
 
   // Sidebar content as a function for reuse
   const sidebarContent = (
-    <aside className="w-64 min-h-screen bg-gradient-to-b from-blue-600 to-blue-700 text-white flex flex-col justify-between p-4 border-r border-blue-500/20">
+    <aside className="w-64 min-h-screen bg-gradient-to-b from-blue-600 to-blue-700 text-white flex flex-col justify-between p-4 border-r border-blue-500/20 sticky top-0">
       {/* Parte superior: Perfil */}
       <div className="space-y-6">
         <div className="flex items-center gap-3 p-2 rounded-lg bg-white/10 backdrop-blur-sm">
