@@ -19,6 +19,7 @@ export interface BonoData {
   tasaMercado: number;
   userId: string;
   creadoEn?: { seconds: number };
+  emisorNombre?: string;
 }
 
 export async function saveBono(user: User, data: BonoData) {
@@ -28,6 +29,7 @@ export async function saveBono(user: User, data: BonoData) {
       ...data,
       userId: user.uid,
       creadoEn: Timestamp.now(),
+      emisorNombre: data.emisorNombre || "",
     };
     await addDoc(ref, bonoGuardado);
   } catch (error) {

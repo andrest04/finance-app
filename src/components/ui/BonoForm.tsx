@@ -42,7 +42,7 @@ const bonoFormSchema = z.object({
 type BonoFormData = z.infer<typeof bonoFormSchema>;
 
 export default function BonoForm() {
-  const { firebaseUser } = useCurrentUser();
+  const { firebaseUser, profile } = useCurrentUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userCurrency, setUserCurrency] = useState("PEN");
   const router = useRouter();
@@ -104,6 +104,9 @@ export default function BonoForm() {
 
     setIsSubmitting(true);
     try {
+      const emisorNombre = profile
+        ? `${profile.firstName} ${profile.lastName}`
+        : "";
       const transformedData = {
         ...data,
         valorNominal: parseFloat(data.valorNominal),
@@ -118,6 +121,7 @@ export default function BonoForm() {
         comisionBonista: parseFloat(data.comisionBonista),
         tasaMercado: parseFloat(data.tasaMercado),
         userId: firebaseUser.uid,
+        emisorNombre,
       };
 
       await saveBono(firebaseUser, transformedData);
