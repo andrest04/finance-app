@@ -16,10 +16,13 @@ export default function RegisterPage() {
     email: "",
     password: "",
     confirmPassword: "",
+    role: "emisor",
   });
   const [error, setError] = useState("");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -42,6 +45,7 @@ export default function RegisterPage() {
       await saveUserData(userCredential.user, {
         firstName: formData.firstName,
         lastName: formData.lastName,
+        role: formData.role,
       });
       router.push("/welcome");
     } catch (error: unknown) {
@@ -56,6 +60,7 @@ export default function RegisterPage() {
       await saveUserData(result.user, {
         firstName: result.user.displayName?.split(" ")[0] || "",
         lastName: result.user.displayName?.split(" ").slice(1).join(" ") || "",
+        role: "inversionista",
       });
       router.push("/welcome");
     } catch (error: unknown) {
@@ -121,6 +126,16 @@ export default function RegisterPage() {
             className="w-full px-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             required
           />
+          <select
+            name="role"
+            value={formData.role}
+            onChange={handleChange}
+            className="w-full px-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            required
+          >
+            <option value="emisor">Emisor (Empresa)</option>
+            <option value="inversionista">Inversionista/Bonista</option>
+          </select>
           {error && (
             <div className="text-sm text-red-600 bg-red-100 p-2 rounded-md text-center">
               {error}
