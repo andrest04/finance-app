@@ -17,19 +17,38 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      console.log("Attempting login with email:", email);
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
         password
       );
+      console.log("Login successful, saving user data");
       await saveUserData(userCredential.user);
+      console.log("Fetching user data");
       const userData = await getUserData(userCredential.user.uid);
-      if (userData?.role === "emisor") {
+      console.log("User data retrieved:", userData);
+
+      if (!userData) {
+        console.error("No user data found after login");
+        setError(
+          "Error al cargar los datos del usuario. Por favor, intenta de nuevo."
+        );
+        return;
+      }
+
+      // Esperar un momento para asegurar que el estado de autenticación se actualice
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      if (userData.role === "emisor") {
+        console.log("Redirecting to emisor dashboard");
         router.push("/emisor/welcome");
       } else {
+        console.log("Redirecting to inversionista dashboard");
         router.push("/inversionista/welcome");
       }
     } catch (error: unknown) {
+      console.error("Login error:", error);
       setError(getErrorMessage(error));
     }
   };
