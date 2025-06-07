@@ -6,6 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import ProtectedRoute from "@/components/RouteGuard";
 
 const faqs = [
   {
@@ -37,25 +38,29 @@ const faqs = [
 
 export default function HelpPage() {
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-8">Centro de Ayuda</h1>
+    <ProtectedRoute requiredRole={undefined}>
+      <div className="max-w-4xl mx-auto p-6">
+        <h1 className="text-3xl font-bold mb-8">Centro de Ayuda</h1>
 
-      <div className="grid gap-8">
-        {/* FAQs */}
-        <section className="bg-white rounded-lg shadow-sm border p-6">
-          <h2 className="text-2xl font-semibold mb-6">Preguntas Frecuentes</h2>
-          <Accordion type="single" collapsible className="w-full">
-            {faqs.map((faq, index) => (
-              <AccordionItem key={index} value={`item-${index}`}>
-                <AccordionTrigger className="text-left">
-                  {faq.question}
-                </AccordionTrigger>
-                <AccordionContent>{faq.answer}</AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </section>
+        <div className="grid gap-8">
+          {/* FAQs */}
+          <section className="bg-white rounded-lg shadow-sm border p-6">
+            <h2 className="text-2xl font-semibold mb-6">
+              Preguntas Frecuentes
+            </h2>
+            <Accordion type="single" collapsible className="w-full">
+              {faqs.map((faq, index) => (
+                <AccordionItem key={index} value={`item-${index}`}>
+                  <AccordionTrigger className="text-left">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent>{faq.answer}</AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </section>
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }

@@ -47,7 +47,11 @@ export default function RegisterPage() {
         lastName: formData.lastName,
         role: formData.role,
       });
-      router.push("/welcome");
+      if (formData.role === "emisor") {
+        router.push("/emisor/welcome");
+      } else {
+        router.push("/inversionista/welcome");
+      }
     } catch (error: unknown) {
       setError(getErrorMessage(error));
     }
@@ -62,7 +66,7 @@ export default function RegisterPage() {
         lastName: result.user.displayName?.split(" ").slice(1).join(" ") || "",
         role: "inversionista",
       });
-      router.push("/welcome");
+      router.push("/inversionista/welcome");
     } catch (error: unknown) {
       console.error("Error en registro con Google:", error);
       // Mostrar error más detallado para depuración

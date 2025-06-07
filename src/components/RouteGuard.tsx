@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 
 interface ProtectedRouteProps {
-  requiredRole: "emisor" | "inversionista";
+  requiredRole?: "emisor" | "inversionista";
   children: React.ReactNode;
 }
 
@@ -20,12 +20,17 @@ export default function ProtectedRoute({
     if (firebaseUser === null) {
       // No autenticado
       router.replace("/login");
-    } else if (profile && profile.role && profile.role !== requiredRole) {
+    } else if (
+      requiredRole &&
+      profile &&
+      profile.role &&
+      profile.role !== requiredRole
+    ) {
       // Rol incorrecto
       if (profile.role === "emisor") {
-        router.replace("/emisor/dashboard");
+        router.replace("/emisor/welcome");
       } else {
-        router.replace("/inversionista/dashboard");
+        router.replace("/inversionista/welcome");
       }
     }
   }, [firebaseUser, profile, requiredRole, router]);
@@ -39,8 +44,8 @@ export default function ProtectedRoute({
     );
   }
 
-  // Si el rol es correcto, mostrar el contenido
-  if (profile.role === requiredRole) {
+  // Si el rol es correcto o no se requiere rol, mostrar el contenido
+  if (!requiredRole || profile.role === requiredRole) {
     return <>{children}</>;
   }
 

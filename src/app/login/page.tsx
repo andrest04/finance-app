@@ -25,9 +25,9 @@ export default function LoginPage() {
       await saveUserData(userCredential.user);
       const userData = await getUserData(userCredential.user.uid);
       if (userData?.role === "emisor") {
-        router.push("/emisor/dashboard");
+        router.push("/emisor/welcome");
       } else {
-        router.push("/inversionista/dashboard");
+        router.push("/inversionista/welcome");
       }
     } catch (error: unknown) {
       setError(getErrorMessage(error));
@@ -41,9 +41,9 @@ export default function LoginPage() {
       await saveUserData(result.user);
       const userData = await getUserData(result.user.uid);
       if (userData?.role === "emisor") {
-        router.push("/emisor/dashboard");
+        router.push("/emisor/welcome");
       } else {
-        router.push("/inversionista/dashboard");
+        router.push("/inversionista/welcome");
       }
     } catch (error: unknown) {
       console.error("Error en login con Google:", error);
