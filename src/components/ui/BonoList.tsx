@@ -165,16 +165,18 @@ export default function BonosList() {
             <Download className="w-4 h-4 mr-2" />
             Exportar PDF
           </Button>
-          <Button
-            onClick={() => router.push("/bonos/register")}
-            className="inline-flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" /> Registrar nuevo bono
-          </Button>
+          {profile?.role === "emisor" && (
+            <Button
+              onClick={() => router.push("/bonos/register")}
+              className="inline-flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" /> Registrar nuevo bono
+            </Button>
+          )}
         </div>
       </div>
 
-      {loading && bonos.length === 0 ? (
+      {loading ? (
         <div className="flex justify-center items-center py-12">
           <Loader2 className="animate-spin h-6 w-6 text-blue-600 mr-2" />
           <span className="text-blue-700 font-medium">Cargando bonos...</span>
@@ -186,7 +188,7 @@ export default function BonosList() {
               ? "No se encontraron bonos que coincidan con la búsqueda."
               : "No hay bonos registrados."}
           </p>
-          {!searchTerm && (
+          {!searchTerm && profile?.role === "emisor" && (
             <Button
               onClick={() => router.push("/bonos/register")}
               className="inline-flex items-center gap-2"
