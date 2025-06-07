@@ -74,6 +74,46 @@ export default function Sidebar() {
     router.push("/login");
   };
 
+  // Definir menús según el rol
+  let roleNavigationItems = navigationItems;
+  if (profile?.role === "emisor") {
+    roleNavigationItems = [
+      {
+        name: "Dashboard",
+        href: "/emisor/dashboard",
+        icon: Home,
+      },
+      {
+        name: "Registrar Bono",
+        href: "/bonos/register",
+        icon: PlusCircle,
+      },
+      {
+        name: "Listar Bonos",
+        href: "/bonos/list",
+        icon: List,
+      },
+    ];
+  } else if (profile?.role === "inversionista") {
+    roleNavigationItems = [
+      {
+        name: "Dashboard",
+        href: "/inversionista/dashboard",
+        icon: Home,
+      },
+      {
+        name: "Análisis de Bonos",
+        href: "/bonos/analisis",
+        icon: BarChart2,
+      },
+      {
+        name: "Listar Bonos",
+        href: "/bonos/list",
+        icon: List,
+      },
+    ];
+  }
+
   // Sidebar content as a function for reuse
   const sidebarContent = (
     <aside className="w-64 min-h-screen bg-gradient-to-b from-blue-600 to-blue-700 text-white flex flex-col justify-between p-4 border-r border-blue-500/20 sticky top-0">
@@ -109,7 +149,7 @@ export default function Sidebar() {
 
         {/* Navegación principal */}
         <nav className="space-y-1">
-          {navigationItems.map((item) => {
+          {roleNavigationItems.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link key={item.href} href={item.href}>

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
-import { saveUserData } from "@/lib/userUtils";
+import { saveUserData, getUserData } from "@/lib/userUtils";
 import { getErrorMessage } from "@/lib/errorMessages";
 import Link from "next/link";
 
@@ -23,7 +23,12 @@ export default function LoginPage() {
         password
       );
       await saveUserData(userCredential.user);
-      router.push("/welcome");
+      const userData = await getUserData(userCredential.user.uid);
+      if (userData?.role === "emisor") {
+        router.push("/emisor/dashboard");
+      } else {
+        router.push("/inversionista/dashboard");
+      }
     } catch (error: unknown) {
       setError(getErrorMessage(error));
     }
@@ -34,7 +39,12 @@ export default function LoginPage() {
       const result = await signInWithPopup(auth, googleProvider);
       console.log("Login con Google exitoso:", result.user.displayName);
       await saveUserData(result.user);
-      router.push("/welcome");
+      const userData = await getUserData(result.user.uid);
+      if (userData?.role === "emisor") {
+        router.push("/emisor/dashboard");
+      } else {
+        router.push("/inversionista/dashboard");
+      }
     } catch (error: unknown) {
       console.error("Error en login con Google:", error);
       // Mostrar error más detallado para depuración
