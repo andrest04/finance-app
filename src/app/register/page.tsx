@@ -48,9 +48,9 @@ export default function RegisterPage() {
         role: formData.role,
       });
       if (formData.role === "emisor") {
-        router.push("/emisor/welcome");
+        router.push("/emisor/dashboard");
       } else {
-        router.push("/inversionista/welcome");
+        router.push("/inversionista/dashboard");
       }
     } catch (error: unknown) {
       setError(getErrorMessage(error));
@@ -66,7 +66,7 @@ export default function RegisterPage() {
         lastName: result.user.displayName?.split(" ").slice(1).join(" ") || "",
         role: "inversionista",
       });
-      router.push("/inversionista/welcome");
+      router.push("/inversionista/dashboard");
     } catch (error: unknown) {
       console.error("Error en registro con Google:", error);
       // Mostrar error más detallado para depuración

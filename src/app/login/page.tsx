@@ -42,10 +42,10 @@ export default function LoginPage() {
 
       if (userData.role === "emisor") {
         console.log("Redirecting to emisor dashboard");
-        router.push("/emisor/welcome");
+        router.push("/emisor/dashboard");
       } else {
         console.log("Redirecting to inversionista dashboard");
-        router.push("/inversionista/welcome");
+        router.push("/inversionista/dashboard");
       }
     } catch (error: unknown) {
       console.error("Login error:", error);
@@ -60,9 +60,9 @@ export default function LoginPage() {
       await saveUserData(result.user);
       const userData = await getUserData(result.user.uid);
       if (userData?.role === "emisor") {
-        router.push("/emisor/welcome");
+        router.push("/emisor/dashboard");
       } else {
-        router.push("/inversionista/welcome");
+        router.push("/inversionista/dashboard");
       }
     } catch (error: unknown) {
       console.error("Error en login con Google:", error);

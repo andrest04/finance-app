@@ -45,9 +45,9 @@ export default function ProtectedRoute({
       );
       setIsRedirecting(true);
       if (profile.role === "emisor") {
-        router.replace("/emisor/welcome");
+        router.replace("/emisor/dashboard");
       } else {
-        router.replace("/inversionista/welcome");
+        router.replace("/inversionista/dashboard");
       }
     } else {
       console.log("RouteGuard - Access granted");
