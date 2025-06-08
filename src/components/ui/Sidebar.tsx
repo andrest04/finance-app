@@ -63,6 +63,25 @@ const bottomNavigationItems = [
   },
 ];
 
+const roleNavigationMap: Record<string, typeof navigationItems> = {
+  emisor: [
+    { name: "Dashboard", href: "/emisor/dashboard", icon: Home },
+    { name: "Registrar Bono", href: "/bonos/register", icon: PlusCircle },
+    { name: "Listar Bonos", href: "/bonos/list", icon: List },
+    { name: "Estadísticas", href: "/bonos/estadisticas", icon: BarChart2 },
+    { name: "Análisis de Bonos", href: "/bonos/analisis", icon: BarChart2 },
+  ],
+  inversionista: [
+    { name: "Dashboard", href: "/inversionista/dashboard", icon: Home },
+    { name: "Listar Bonos", href: "/bonos/list", icon: List },
+    { name: "Estadísticas", href: "/bonos/estadisticas", icon: BarChart2 },
+    { name: "Análisis de Bonos", href: "/bonos/analisis", icon: BarChart2 },
+  ],
+  // Ejemplo para admin o auditor:
+  // admin: [ ... ],
+  // auditor: [ ... ],
+};
+
 export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -74,44 +93,13 @@ export default function Sidebar() {
     router.push("/login");
   };
 
-  // Definir menús según el rol
+  // Elegir menú según el rol, o menú mínimo si no hay rol
   let roleNavigationItems = navigationItems;
-  if (profile?.role === "emisor") {
-    roleNavigationItems = [
-      {
-        name: "Dashboard",
-        href: "/emisor/dashboard",
-        icon: Home,
-      },
-      {
-        name: "Registrar Bono",
-        href: "/bonos/register",
-        icon: PlusCircle,
-      },
-      {
-        name: "Listar Bonos",
-        href: "/bonos/list",
-        icon: List,
-      },
-    ];
-  } else if (profile?.role === "inversionista") {
-    roleNavigationItems = [
-      {
-        name: "Dashboard",
-        href: "/inversionista/dashboard",
-        icon: Home,
-      },
-      {
-        name: "Análisis de Bonos",
-        href: "/bonos/analisis",
-        icon: BarChart2,
-      },
-      {
-        name: "Listar Bonos",
-        href: "/bonos/list",
-        icon: List,
-      },
-    ];
+  if (profile?.role && roleNavigationMap[profile.role]) {
+    roleNavigationItems = roleNavigationMap[profile.role];
+  } else if (!profile?.role) {
+    // Menú mínimo para usuarios sin rol
+    roleNavigationItems = [{ name: "Dashboard", href: "/welcome", icon: Home }];
   }
 
   // Sidebar content as a function for reuse
@@ -155,27 +143,29 @@ export default function Sidebar() {
 
         {/* Navegación principal */}
         <nav className="space-y-1">
-          {roleNavigationItems.map((item) => {
+          {roleNavigationItems.map((item, idx) => {
             const isActive = pathname === item.href;
             return (
               <Link key={item.href} href={item.href}>
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start text-white hover:bg-white/10 transition-all duration-200 group relative",
-                    isActive && "bg-white/20"
+                    "w-full justify-start text-white hover:bg-white/10 transition-all duration-200 group relative px-3 py-2 rounded-lg",
+                    isActive && "bg-white/30 text-blue-900 font-bold shadow-md",
+                    idx === 0 && "mt-2"
                   )}
                 >
                   <item.icon className="mr-2 h-5 w-5" />
                   {item.name}
                   {isActive && (
-                    <span className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white" />
+                    <span className="absolute right-2 w-2 h-2 rounded-full bg-white border-2 border-blue-700 shadow" />
                   )}
                 </Button>
               </Link>
             );
           })}
         </nav>
+        <div className="my-4 border-t border-white/20" />
       </div>
 
       {/* Parte inferior: Navegación secundaria y Logout */}
@@ -189,32 +179,28 @@ export default function Sidebar() {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group relative",
-                    isActive && "bg-white/20 text-white"
+                    "w-full justify-start text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group relative px-3 py-2 rounded-lg",
+                    isActive && "bg-white/30 text-blue-900 font-bold shadow-md"
                   )}
                 >
                   <item.icon className="mr-2 h-5 w-5" />
                   {item.name}
                   {isActive && (
-                    <span className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white" />
+                    <span className="absolute right-2 w-2 h-2 rounded-full bg-white border-2 border-blue-700 shadow" />
                   )}
                 </Button>
               </Link>
             );
           })}
         </nav>
-
-        {/* Separador */}
-        <div className="h-px bg-white/10" />
-
-        {/* Botón de Logout */}
+        <div className="my-2 border-t border-white/20" />
         <Button
           variant="outline"
-          className="w-full border-2 border-white/20 text-white bg-transparent hover:bg-white/10 hover:border-white/30 transition-all duration-200 flex justify-center items-center font-semibold py-3 group"
+          className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white border-white/30"
           onClick={handleLogout}
         >
-          <LogOut className="mr-2 h-5 w-5" />
-          <span className="font-semibold">Cerrar sesión</span>
+          <LogOut className="h-5 w-5" />
+          Cerrar sesión
         </Button>
 
         {/* Footer */}

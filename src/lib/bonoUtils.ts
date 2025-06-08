@@ -37,6 +37,21 @@ export interface BonoStats {
   bonosActivos: number;
 }
 
+export interface BonoFullStats {
+  totalBonos: number;
+  bonosActivos: number;
+  bonosVencidos: number;
+  valorNominalTotal: number;
+  valorNominalVencido: number;
+  tasaPromedio: number;
+  tasaMaxima: number;
+  tasaMinima: number;
+  proximoVencimiento: string;
+  montosPorMoneda: Record<string, number>;
+  evolucionMensual: { mes: string; monto: number }[];
+  evolucionMensualPorMoneda: Record<string, { mes: string; monto: number }[]>;
+}
+
 export const saveBono = async (user: User, bonoData: BonoData) => {
   try {
     const docRef = await addDoc(collection(db, "bonds"), {
@@ -162,6 +177,129 @@ export const getRecentActivity = async (userId?: string) => {
     });
   } catch (error) {
     console.error("Error getting recent activity:", error);
+    throw error;
+  }
+};
+
+export const getBonoFullStats = async (
+  userId?: string
+): Promise<BonoFullStats> => {
+  try {
+    let q;
+    if (userId) {
+      q = query(collection(db, "bonds"), where("userId", "==", userId));
+    } else {
+      q = query(collection(db, "bonds"));
+    }
+    const snapshot = await getDocs(q);
+    const bonos = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as (BonoData & { id: string })[];
+
+    // Fechas y hoy
+    const hoy = new Date();
+    const bonosConFechas = bonos.map((bono) => {
+      const fechaEmision =
+        typeof bono.fechaEmision === "string"
+          ? new Date(bono.fechaEmision)
+          : new Date(bono.fechaEmision.seconds * 1000);
+      const fechaVencimiento = new Date(fechaEmision);
+      fechaVencimiento.setFullYear(fechaVencimiento.getFullYear() + bono.plazo);
+      return { ...bono, fechaEmision, fechaVencimiento };
+    });
+
+    // Activos y vencidos
+    const bonosActivos = bonosConFechas.filter((b) => b.fechaVencimiento > hoy);
+    const bonosVencidos = bonosConFechas.filter(
+      (b) => b.fechaVencimiento <= hoy
+    );
+
+    // Valor nominal total y vencido
+    const valorNominalTotal = bonos.reduce((acc, b) => acc + b.valorNominal, 0);
+    const valorNominalVencido = bonosVencidos.reduce(
+      (acc, b) => acc + b.valorNominal,
+      0
+    );
+
+    // Tasas
+    const tasas = bonos.map((b) => b.tasaAnual);
+    const tasaPromedio =
+      tasas.length > 0 ? tasas.reduce((a, b) => a + b, 0) / tasas.length : 0;
+    const tasaMaxima = tasas.length > 0 ? Math.max(...tasas) : 0;
+    const tasaMinima = tasas.length > 0 ? Math.min(...tasas) : 0;
+
+    // Próximo vencimiento
+    const proximo = bonosActivos.sort(
+      (a, b) => a.fechaVencimiento.getTime() - b.fechaVencimiento.getTime()
+    )[0];
+    const diasHastaProximo = proximo
+      ? Math.ceil(
+          (proximo.fechaVencimiento.getTime() - hoy.getTime()) /
+            (1000 * 60 * 60 * 24)
+        )
+      : 0;
+    const proximoVencimiento = proximo
+      ? diasHastaProximo > 0
+        ? `${diasHastaProximo} días`
+        : "Hoy"
+      : "No hay vencimientos próximos";
+
+    // Montos por moneda
+    const montosPorMoneda: Record<string, number> = {};
+    bonos.forEach((b) => {
+      montosPorMoneda[b.moneda] =
+        (montosPorMoneda[b.moneda] || 0) + b.valorNominal;
+    });
+
+    // Evolución mensual (por fecha de emisión, sumando todas las monedas)
+    const evolucionMap: Record<string, number> = {};
+    bonosConFechas.forEach((b) => {
+      const mes = `${b.fechaEmision.getFullYear()}-${String(
+        b.fechaEmision.getMonth() + 1
+      ).padStart(2, "0")}`;
+      evolucionMap[mes] = (evolucionMap[mes] || 0) + b.valorNominal;
+    });
+    const evolucionMensual = Object.entries(evolucionMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([mes, monto]) => ({ mes, monto }));
+
+    // Evolución mensual por moneda
+    const evolucionPorMoneda: Record<string, Record<string, number>> = {};
+    bonosConFechas.forEach((b) => {
+      const mes = `${b.fechaEmision.getFullYear()}-${String(
+        b.fechaEmision.getMonth() + 1
+      ).padStart(2, "0")}`;
+      if (!evolucionPorMoneda[b.moneda]) evolucionPorMoneda[b.moneda] = {};
+      evolucionPorMoneda[b.moneda][mes] =
+        (evolucionPorMoneda[b.moneda][mes] || 0) + b.valorNominal;
+    });
+    const evolucionMensualPorMoneda: Record<
+      string,
+      { mes: string; monto: number }[]
+    > = {};
+    Object.entries(evolucionPorMoneda).forEach(([moneda, data]) => {
+      evolucionMensualPorMoneda[moneda] = Object.entries(data)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([mes, monto]) => ({ mes, monto }));
+    });
+
+    return {
+      totalBonos: bonos.length,
+      bonosActivos: bonosActivos.length,
+      bonosVencidos: bonosVencidos.length,
+      valorNominalTotal,
+      valorNominalVencido,
+      tasaPromedio: Number(tasaPromedio.toFixed(2)),
+      tasaMaxima: Number(tasaMaxima.toFixed(2)),
+      tasaMinima: Number(tasaMinima.toFixed(2)),
+      proximoVencimiento,
+      montosPorMoneda,
+      evolucionMensual,
+      evolucionMensualPorMoneda,
+    };
+  } catch (error) {
+    console.error("Error getting bono full stats:", error);
     throw error;
   }
 };
