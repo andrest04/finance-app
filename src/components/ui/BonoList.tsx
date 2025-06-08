@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   collection,
   getDocs,
@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { exportBonosToPDF } from "@/lib/exportUtils";
 import type { BonoData } from "@/lib/bonoUtils";
+import { Card } from "@/components/ui/card";
 
 type Bono = BonoData;
 
@@ -49,13 +50,14 @@ function formatDate(date: string | { seconds: number }) {
 const BONOS_POR_PAGINA = 10;
 
 export default function BonosList() {
-  const { firebaseUser, profile } = useCurrentUser();
+  const { firebaseUser, profile, loading: userLoading } = useCurrentUser();
   const [bonos, setBonos] = useState<(Bono & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const eliminarBono = async (bonoId: string) => {
@@ -76,58 +78,80 @@ export default function BonosList() {
     }
   };
 
-  const fetchBonos = async (isNewSearch = false) => {
-    if (!firebaseUser) return;
-    setLoading(true);
-
-    try {
-      let q;
-      if (profile?.role === "inversionista") {
-        q = query(collection(db, "bonds"), limit(BONOS_POR_PAGINA));
-      } else {
-        q = query(
-          collection(db, "bonds"),
-          where("userId", "==", firebaseUser.uid),
-          limit(BONOS_POR_PAGINA)
-        );
+  const fetchBonos = useCallback(
+    async (isNewSearch = false) => {
+      setError(null);
+      if (!firebaseUser || !profile) {
+        setLoading(false);
+        setError("No hay usuario o perfil cargado");
+        return;
       }
 
-      if (!isNewSearch && lastDoc) {
-        q = query(q, startAfter(lastDoc));
+      setLoading(true);
+      try {
+        let q;
+        console.log("profile.role", profile.role);
+        if (profile.role === "inversionista") {
+          q = query(collection(db, "bonds"), limit(BONOS_POR_PAGINA));
+        } else {
+          q = query(
+            collection(db, "bonds"),
+            where("userId", "==", firebaseUser.uid),
+            limit(BONOS_POR_PAGINA)
+          );
+        }
+        if (!isNewSearch && lastDoc) {
+          q = query(q, startAfter(lastDoc));
+        }
+        const snapshot = await getDocs(q);
+        console.log("snapshot.docs.length", snapshot.docs.length);
+        const bonosData = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          console.log("bono doc", doc.id, data);
+          return {
+            id: doc.id,
+            ...data,
+          };
+        }) as (Bono & { id: string })[];
+        // Ordenar los bonos por fecha de creación en el cliente
+        const sortedBonos = bonosData.sort((a, b) => {
+          const dateA = typeof a.creadoEn === "object" ? a.creadoEn.seconds : 0;
+          const dateB = typeof b.creadoEn === "object" ? b.creadoEn.seconds : 0;
+          return dateB - dateA;
+        });
+        if (isNewSearch) {
+          setBonos(sortedBonos);
+        } else {
+          setBonos((prev) => [...prev, ...sortedBonos]);
+        }
+        setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+        setHasMore(snapshot.docs.length === BONOS_POR_PAGINA);
+        if (sortedBonos.length === 0) {
+          setError(
+            "No se encontraron bonos para este usuario. UID: " +
+              firebaseUser.uid
+          );
+        }
+      } catch (error: unknown) {
+        console.error("Error fetching bonos:", error);
+        if (error instanceof Error) {
+          setError("Error al cargar los bonos: " + error.message);
+        } else {
+          setError("Error al cargar los bonos");
+        }
+        toast.error("Error al cargar los bonos");
+      } finally {
+        setLoading(false);
       }
-
-      const snapshot = await getDocs(q);
-      const bonosData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as (Bono & { id: string })[];
-
-      // Ordenar los bonos por fecha de creación en el cliente
-      const sortedBonos = bonosData.sort((a, b) => {
-        const dateA = typeof a.creadoEn === "object" ? a.creadoEn.seconds : 0;
-        const dateB = typeof b.creadoEn === "object" ? b.creadoEn.seconds : 0;
-        return dateB - dateA;
-      });
-
-      if (isNewSearch) {
-        setBonos(sortedBonos);
-      } else {
-        setBonos((prev) => [...prev, ...sortedBonos]);
-      }
-
-      setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
-      setHasMore(snapshot.docs.length === BONOS_POR_PAGINA);
-    } catch (error) {
-      console.error("Error fetching bonos:", error);
-      toast.error("Error al cargar los bonos");
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [firebaseUser, profile, lastDoc]
+  );
 
   useEffect(() => {
-    fetchBonos(true);
-  }, [firebaseUser]);
+    if (!userLoading && firebaseUser && profile) {
+      fetchBonos(true);
+    }
+  }, [fetchBonos, userLoading, firebaseUser, profile]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -140,13 +164,39 @@ export default function BonosList() {
     bono.nombre.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (!firebaseUser) {
-    return <p className="p-6 text-center text-gray-500">Cargando sesión...</p>;
+  if (userLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <Loader2 className="animate-spin h-6 w-6 text-blue-600 mr-2" />
+        <span className="text-blue-700 font-medium">Cargando sesión...</span>
+      </div>
+    );
+  }
+
+  if (!firebaseUser || !profile) {
+    return (
+      <div className="flex flex-col items-center py-12 bg-white rounded-lg shadow-sm">
+        <p className="text-center text-gray-500 mb-4">
+          No tienes acceso a esta página. Por favor, inicia sesión.
+        </p>
+        <Button
+          onClick={() => router.push("/login")}
+          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+        >
+          Ir a iniciar sesión
+        </Button>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center mb-4">
+      {error && (
+        <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+      <div className="flex justify-between items-center mb-6">
         <div className="relative w-64">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
           <Input
@@ -161,14 +211,15 @@ export default function BonosList() {
             variant="outline"
             onClick={() => exportBonosToPDF(bonos)}
             disabled={bonos.length === 0}
+            className="flex items-center gap-2"
           >
-            <Download className="w-4 h-4 mr-2" />
+            <Download className="w-4 h-4" />
             Exportar PDF
           </Button>
-          {profile?.role === "emisor" && (
+          {profile.role === "emisor" && (
             <Button
               onClick={() => router.push("/bonos/register")}
-              className="inline-flex items-center gap-2"
+              className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700"
             >
               <Plus className="w-4 h-4" /> Registrar nuevo bono
             </Button>
@@ -182,16 +233,16 @@ export default function BonosList() {
           <span className="text-blue-700 font-medium">Cargando bonos...</span>
         </div>
       ) : filteredBonos.length === 0 ? (
-        <div className="flex flex-col items-center py-12">
+        <div className="flex flex-col items-center py-12 bg-white rounded-lg shadow-sm">
           <p className="text-center text-gray-500 mb-4">
             {searchTerm
               ? "No se encontraron bonos que coincidan con la búsqueda."
               : "No hay bonos registrados."}
           </p>
-          {!searchTerm && profile?.role === "emisor" && (
+          {!searchTerm && profile.role === "emisor" && (
             <Button
               onClick={() => router.push("/bonos/register")}
-              className="inline-flex items-center gap-2"
+              className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700"
             >
               <Plus className="w-4 h-4" /> Registrar nuevo bono
             </Button>
@@ -199,106 +250,90 @@ export default function BonosList() {
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-blue-50 text-gray-800">
-                <tr>
-                  <th className="px-4 py-3 text-left font-semibold">Nombre</th>
-                  <th className="px-4 py-3 text-left font-semibold">Moneda</th>
-                  <th className="px-4 py-3 text-left font-semibold">
-                    Valor Nominal
-                  </th>
-                  <th className="px-4 py-3 text-left font-semibold">Plazo</th>
-                  <th className="px-4 py-3 text-left font-semibold">
-                    Tasa Anual
-                  </th>
-                  <th className="px-4 py-3 text-left font-semibold">
-                    Fecha Emisión
-                  </th>
-                  {profile?.role === "inversionista" && (
-                    <th className="px-4 py-3 text-left font-semibold">
-                      Emisor
-                    </th>
-                  )}
-                  <th className="px-4 py-3 text-left font-semibold">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredBonos.map((bono) => (
-                  <tr
-                    key={bono.id}
-                    className="border-b hover:bg-blue-50 transition"
-                  >
-                    <td className="px-4 py-2">{bono.nombre}</td>
-                    <td className="px-4 py-2">{bono.moneda}</td>
-                    <td className="px-4 py-2">
-                      {formatCurrency(bono.valorNominal, bono.moneda)}
-                    </td>
-                    <td className="px-4 py-2">{bono.plazo} años</td>
-                    <td className="px-4 py-2">{bono.tasaAnual}%</td>
-                    <td className="px-4 py-2">
-                      {formatDate(bono.fechaEmision)}
-                    </td>
-                    {profile?.role === "inversionista" && (
-                      <td className="px-4 py-2">{bono.emisorNombre || "-"}</td>
-                    )}
-                    <td className="px-4 py-2 flex gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredBonos.map((bono) => (
+              <Card key={bono.id} className="p-4">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold text-lg text-gray-900">
+                        {bono.nombre}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {bono.emisorNombre || "Emisor no especificado"}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
                       <Button
-                        size="icon"
                         variant="ghost"
-                        onClick={() => router.push(`/bonos/detail/${bono.id}`)}
-                        title="Ver Detalle"
+                        size="icon"
+                        onClick={() => router.push(`/bonos/${bono.id}`)}
                       >
-                        <Eye className="w-4 h-4" />
+                        <Eye className="h-4 w-4" />
                       </Button>
-                      {profile?.role !== "inversionista" && (
+                      {profile.role === "emisor" && (
                         <>
                           <Button
-                            size="icon"
                             variant="ghost"
+                            size="icon"
                             onClick={() =>
                               router.push(`/bonos/edit/${bono.id}`)
                             }
-                            title="Editar"
                           >
-                            <Pencil className="w-4 h-4" />
+                            <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
-                            size="icon"
                             variant="ghost"
+                            size="icon"
                             onClick={() => eliminarBono(bono.id)}
-                            title="Eliminar"
                             disabled={deletingId === bono.id}
                           >
                             {deletingId === bono.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="h-4 w-4" />
                             )}
                           </Button>
                         </>
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Valor Nominal</p>
+                      <p className="font-medium">
+                        {formatCurrency(bono.valorNominal, bono.moneda)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Tasa Anual</p>
+                      <p className="font-medium">{bono.tasaAnual}%</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Plazo</p>
+                      <p className="font-medium">{bono.plazo} años</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Fecha Emisión</p>
+                      <p className="font-medium">
+                        {formatDate(bono.fechaEmision)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
-
           {hasMore && (
             <div className="flex justify-center mt-4">
               <Button
                 variant="outline"
                 onClick={() => fetchBonos(false)}
                 disabled={loading}
+                className="flex items-center gap-2"
               >
                 {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Cargando...
-                  </>
+                  <Loader2 className="animate-spin h-4 w-4" />
                 ) : (
                   "Cargar más"
                 )}

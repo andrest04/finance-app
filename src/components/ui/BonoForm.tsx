@@ -11,7 +11,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { saveBono } from "@/lib/bonoUtils";
+import { saveBono, BonoData } from "@/lib/bonoUtils";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -107,16 +107,18 @@ export default function BonoForm() {
       const emisorNombre = profile
         ? `${profile.firstName} ${profile.lastName}`
         : "";
-      const transformedData = {
-        ...data,
+
+      // Crear el objeto base sin campos undefined
+      const transformedData: BonoData = {
+        nombre: data.nombre,
         valorNominal: parseFloat(data.valorNominal),
+        moneda: data.moneda,
+        tipoTasa: data.tipoTasa,
         tasaAnual: parseFloat(data.tasaAnual),
         frecuenciaPago: parseInt(data.frecuenciaPago),
-        frecuenciaCapitalizacion: data.frecuenciaCapitalizacion
-          ? parseInt(data.frecuenciaCapitalizacion)
-          : undefined,
         plazo: parseInt(data.plazo),
-        nGracia: data.nGracia ? parseInt(data.nGracia) : undefined,
+        tipoGracia: data.tipoGracia,
+        fechaEmision: data.fechaEmision,
         comisionEmisor: parseFloat(data.comisionEmisor),
         comisionBonista: parseFloat(data.comisionBonista),
         tasaMercado: parseFloat(data.tasaMercado),
@@ -124,10 +126,26 @@ export default function BonoForm() {
         emisorNombre,
       };
 
+      // Agregar campos opcionales solo si tienen valor
+      if (data.frecuenciaCapitalizacion) {
+        transformedData.frecuenciaCapitalizacion = parseInt(
+          data.frecuenciaCapitalizacion
+        );
+      }
+      if (data.nGracia) {
+        transformedData.nGracia = parseInt(data.nGracia);
+      }
+
       await saveBono(firebaseUser, transformedData);
       toast.success("¡Bono guardado correctamente!");
       form.reset();
+
+      // Esperar un momento para asegurar que el toast se muestre
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Redirigir a la lista de bonos
       router.push("/bonos/list");
+      router.refresh(); // Forzar una recarga de la página
     } catch (error) {
       console.error("Error al guardar:", error);
       toast.error("Ocurrió un error al guardar el bono.");
