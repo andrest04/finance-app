@@ -59,7 +59,11 @@ export default function LoginPage() {
       console.log("Login con Google exitoso:", result.user.displayName);
       await saveUserData(result.user);
       const userData = await getUserData(result.user.uid);
-      if (userData?.role === "emisor") {
+      if (!userData?.role) {
+        router.push("/select-role");
+        return;
+      }
+      if (userData.role === "emisor") {
         router.push("/emisor/dashboard");
       } else {
         router.push("/inversionista/dashboard");

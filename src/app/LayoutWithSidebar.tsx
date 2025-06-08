@@ -19,7 +19,9 @@ export default function LayoutWithSidebar({
   const isClient = useIsClient();
 
   const isPublic =
-    pathname.startsWith("/login") || pathname.startsWith("/register");
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/register") ||
+    pathname.startsWith("/select-role");
 
   if (isPublic) {
     return <>{children}</>;

@@ -61,15 +61,65 @@ export default function RegisterPage() {
       console.log("Iniciando registro con Google...");
       const result = await signInWithPopup(auth, googleProvider);
       console.log("Registro con Google exitoso:", result.user.displayName);
-      await saveUserData(result.user, {
-        firstName: result.user.displayName?.split(" ")[0] || "",
-        lastName: result.user.displayName?.split(" ").slice(1).join(" ") || "",
-        role: "inversionista",
+
+      // Mostrar diálogo de selección de rol
+      const role = await new Promise<string>((resolve) => {
+        const dialog = document.createElement("div");
+        dialog.className =
+          "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
+        dialog.innerHTML = `
+          <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+            <h2 class="text-xl font-semibold mb-4">Selecciona tu rol</h2>
+            <select id="roleSelect" class="w-full px-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm mb-4">
+              <option value="emisor">Emisor (Empresa)</option>
+              <option value="inversionista">Inversionista/Bonista</option>
+            </select>
+            <button id="confirmRole" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-full transition">
+              Confirmar
+            </button>
+          </div>
+        `;
+
+        document.body.appendChild(dialog);
+
+        const confirmButton = dialog.querySelector("#confirmRole");
+        const roleSelect = dialog.querySelector(
+          "#roleSelect"
+        ) as HTMLSelectElement;
+
+        confirmButton?.addEventListener("click", () => {
+          document.body.removeChild(dialog);
+          resolve(roleSelect.value);
+        });
       });
-      router.push("/inversionista/dashboard");
+
+      // Obtener el nombre completo y dividirlo en nombre y apellido
+      const fullName = result.user.displayName || "";
+      const nameParts = fullName.split(" ");
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
+
+      await saveUserData(result.user, {
+        firstName,
+        lastName,
+        role,
+      });
+
+      // Verificar si el rol está vacío en la base de datos
+      const userData = await import("@/lib/userUtils").then((m) =>
+        m.getUserData(result.user.uid)
+      );
+      if (!userData?.role) {
+        router.push("/select-role");
+        return;
+      }
+      if (role === "emisor") {
+        router.push("/emisor/dashboard");
+      } else {
+        router.push("/inversionista/dashboard");
+      }
     } catch (error: unknown) {
       console.error("Error en registro con Google:", error);
-      // Mostrar error más detallado para depuración
       if (error instanceof Error) {
         setError(`${getErrorMessage(error)} (${error.name}: ${error.message})`);
       } else {

@@ -21,32 +21,35 @@ export const saveUserData = async (
     const userRef = doc(db, "users", user.uid);
     const userDoc = await getDoc(userRef);
 
-    const userData: UserData = {
-      email: user.email || "",
-      firstName: additionalData?.firstName || "",
-      lastName: additionalData?.lastName || "",
-      createdAt: userDoc.exists() ? userDoc.data().createdAt : new Date(),
-      lastLogin: new Date(),
-      provider: user.providerData[0]?.providerId || "email",
-      role: additionalData?.role || "inversionista",
-    };
-
-    console.log("User data to save:", userData);
-
-    if (!userDoc.exists()) {
-      console.log("Creating new user document");
-      await setDoc(userRef, userData);
-    } else {
-      console.log("Updating existing user document");
+    if (userDoc.exists()) {
       await updateDoc(userRef, {
-        lastLogin: userData.lastLogin,
+        lastLogin: new Date(),
         ...additionalData,
       });
+      console.log("User data updated successfully");
+      return;
     }
+
+    const userData: UserData = {
+      email: user.email || "",
+      firstName:
+        additionalData?.firstName || user.displayName?.split(" ")[0] || "",
+      lastName:
+        additionalData?.lastName ||
+        user.displayName?.split(" ").slice(1).join(" ") ||
+        "",
+      createdAt: new Date(),
+      lastLogin: new Date(),
+      provider: user.providerData[0]?.providerId || "email",
+      role: additionalData?.role || "",
+    };
+
+    console.log("Creating new user document with data:", userData);
+    await setDoc(userRef, userData);
     console.log("User data saved successfully");
   } catch (error) {
     console.error("Error saving user data:", error);
-    throw error; // Re-throw the error to handle it in the calling function
+    throw error;
   }
 };
 
