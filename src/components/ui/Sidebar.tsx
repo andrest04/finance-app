@@ -143,7 +143,13 @@ export default function Sidebar() {
                 ? `${profile.firstName} ${profile.lastName}`
                 : "Cargando..."}
             </p>
-            <p className="text-sm opacity-75">Personal</p>
+            <p className="text-sm opacity-75">
+              {profile?.role === "emisor"
+                ? "Emisor"
+                : profile?.role === "inversionista"
+                ? "Inversionista"
+                : "Bonista"}
+            </p>
           </div>
         </div>
 
