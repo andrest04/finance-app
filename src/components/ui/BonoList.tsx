@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   collection,
   getDocs,
@@ -51,13 +51,24 @@ const BONOS_POR_PAGINA = 10;
 
 export default function BonosList() {
   const { firebaseUser, profile, loading: userLoading } = useCurrentUser();
-  const [bonos, setBonos] = useState<(Bono & { id: string })[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<{
+    bonos: (Bono & { id: string })[];
+    loading: boolean;
+    deletingId: string | null;
+    searchTerm: string;
+    lastDoc: DocumentSnapshot | null;
+    hasMore: boolean;
+    error: string | null;
+  }>({
+    bonos: [],
+    loading: false,
+    deletingId: null,
+    searchTerm: "",
+    lastDoc: null,
+    hasMore: true,
+    error: null,
+  });
+
   const router = useRouter();
 
   const eliminarBono = async (bonoId: string) => {
@@ -66,31 +77,41 @@ export default function BonosList() {
       "¿Seguro que deseas eliminar este bono? Esta acción no se puede deshacer."
     );
     if (!confirmacion) return;
-    setDeletingId(bonoId);
+
+    setState((prev) => ({ ...prev, deletingId: bonoId }));
     try {
       await deleteDoc(doc(db, "bonds", bonoId));
-      setBonos((prev) => prev.filter((b) => b.id !== bonoId));
+      setState((prev) => ({
+        ...prev,
+        bonos: prev.bonos.filter((b) => b.id !== bonoId),
+        deletingId: null,
+      }));
       toast.success("Bono eliminado correctamente");
     } catch {
       toast.error("Error al eliminar el bono");
-    } finally {
-      setDeletingId(null);
+      setState((prev) => ({ ...prev, deletingId: null }));
     }
   };
 
   const fetchBonos = useCallback(
     async (isNewSearch = false) => {
-      setError(null);
       if (!firebaseUser || !profile) {
-        setLoading(false);
-        setError("No hay usuario o perfil cargado");
+        setState((prev) => ({
+          ...prev,
+          loading: false,
+          error: "No hay usuario o perfil cargado",
+        }));
         return;
       }
 
-      setLoading(true);
+      setState((prev) => ({
+        ...prev,
+        loading: isNewSearch,
+        error: null,
+      }));
+
       try {
         let q;
-        console.log("profile.role", profile.role);
         if (profile.role === "inversionista") {
           q = query(collection(db, "bonds"), limit(BONOS_POR_PAGINA));
         } else {
@@ -100,51 +121,46 @@ export default function BonosList() {
             limit(BONOS_POR_PAGINA)
           );
         }
-        if (!isNewSearch && lastDoc) {
-          q = query(q, startAfter(lastDoc));
+        if (!isNewSearch && state.lastDoc) {
+          q = query(q, startAfter(state.lastDoc));
         }
         const snapshot = await getDocs(q);
-        console.log("snapshot.docs.length", snapshot.docs.length);
-        const bonosData = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          console.log("bono doc", doc.id, data);
-          return {
-            id: doc.id,
-            ...data,
-          };
-        }) as (Bono & { id: string })[];
-        // Ordenar los bonos por fecha de creación en el cliente
+        const bonosData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as (Bono & { id: string })[];
+
         const sortedBonos = bonosData.sort((a, b) => {
           const dateA = typeof a.creadoEn === "object" ? a.creadoEn.seconds : 0;
           const dateB = typeof b.creadoEn === "object" ? b.creadoEn.seconds : 0;
           return dateB - dateA;
         });
-        if (isNewSearch) {
-          setBonos(sortedBonos);
-        } else {
-          setBonos((prev) => [...prev, ...sortedBonos]);
-        }
-        setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
-        setHasMore(snapshot.docs.length === BONOS_POR_PAGINA);
-        if (sortedBonos.length === 0) {
-          setError(
-            "No se encontraron bonos para este usuario. UID: " +
-              firebaseUser.uid
-          );
-        }
+
+        setState((prev) => ({
+          ...prev,
+          bonos: isNewSearch ? sortedBonos : [...prev.bonos, ...sortedBonos],
+          lastDoc: snapshot.docs[snapshot.docs.length - 1],
+          hasMore: snapshot.docs.length === BONOS_POR_PAGINA,
+          loading: false,
+          error:
+            sortedBonos.length === 0 && isNewSearch
+              ? "No se encontraron bonos para este usuario."
+              : null,
+        }));
       } catch (error: unknown) {
         console.error("Error fetching bonos:", error);
-        if (error instanceof Error) {
-          setError("Error al cargar los bonos: " + error.message);
-        } else {
-          setError("Error al cargar los bonos");
-        }
+        setState((prev) => ({
+          ...prev,
+          loading: false,
+          error:
+            error instanceof Error
+              ? `Error al cargar los bonos: ${error.message}`
+              : "Error al cargar los bonos",
+        }));
         toast.error("Error al cargar los bonos");
-      } finally {
-        setLoading(false);
       }
     },
-    [firebaseUser, profile, lastDoc]
+    [firebaseUser, profile, state.lastDoc]
   );
 
   useEffect(() => {
@@ -153,15 +169,26 @@ export default function BonosList() {
     }
   }, [fetchBonos, userLoading, firebaseUser, profile]);
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    setLastDoc(null);
-    setHasMore(true);
-    fetchBonos(true);
-  };
+  const handleSearch = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newSearchTerm = e.target.value;
+      setState((prev) => ({
+        ...prev,
+        searchTerm: newSearchTerm,
+        lastDoc: null,
+        hasMore: true,
+      }));
+      fetchBonos(true);
+    },
+    [fetchBonos]
+  );
 
-  const filteredBonos = bonos.filter((bono) =>
-    bono.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredBonos = useMemo(
+    () =>
+      state.bonos.filter((bono) =>
+        bono.nombre.toLowerCase().includes(state.searchTerm.toLowerCase())
+      ),
+    [state.bonos, state.searchTerm]
   );
 
   if (userLoading) {
@@ -191,9 +218,9 @@ export default function BonosList() {
 
   return (
     <div className="space-y-4">
-      {error && (
+      {state.error && (
         <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
-          <strong>Error:</strong> {error}
+          <strong>Error:</strong> {state.error}
         </div>
       )}
       <div className="flex justify-between items-center mb-6">
@@ -201,7 +228,7 @@ export default function BonosList() {
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
           <Input
             placeholder="Buscar bonos..."
-            value={searchTerm}
+            value={state.searchTerm}
             onChange={handleSearch}
             className="pl-8"
           />
@@ -209,8 +236,8 @@ export default function BonosList() {
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={() => exportBonosToPDF(bonos)}
-            disabled={bonos.length === 0}
+            onClick={() => exportBonosToPDF(state.bonos)}
+            disabled={state.bonos.length === 0}
             className="flex items-center gap-2"
           >
             <Download className="w-4 h-4" />
@@ -227,7 +254,7 @@ export default function BonosList() {
         </div>
       </div>
 
-      {loading ? (
+      {state.loading ? (
         <div className="flex justify-center items-center py-12">
           <Loader2 className="animate-spin h-6 w-6 text-blue-600 mr-2" />
           <span className="text-blue-700 font-medium">Cargando bonos...</span>
@@ -235,11 +262,11 @@ export default function BonosList() {
       ) : filteredBonos.length === 0 ? (
         <div className="flex flex-col items-center py-12 bg-white rounded-lg shadow-sm">
           <p className="text-center text-gray-500 mb-4">
-            {searchTerm
+            {state.searchTerm
               ? "No se encontraron bonos que coincidan con la búsqueda."
               : "No hay bonos registrados."}
           </p>
-          {!searchTerm && profile.role === "emisor" && (
+          {!state.searchTerm && profile.role === "emisor" && (
             <Button
               onClick={() => router.push("/bonos/register")}
               className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700"
@@ -286,9 +313,9 @@ export default function BonosList() {
                             variant="ghost"
                             size="icon"
                             onClick={() => eliminarBono(bono.id)}
-                            disabled={deletingId === bono.id}
+                            disabled={state.deletingId === bono.id}
                           >
-                            {deletingId === bono.id ? (
+                            {state.deletingId === bono.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               <Trash2 className="h-4 w-4" />
@@ -324,15 +351,15 @@ export default function BonosList() {
               </Card>
             ))}
           </div>
-          {hasMore && (
+          {state.hasMore && (
             <div className="flex justify-center mt-4">
               <Button
                 variant="outline"
                 onClick={() => fetchBonos(false)}
-                disabled={loading}
+                disabled={state.loading}
                 className="flex items-center gap-2"
               >
-                {loading ? (
+                {state.loading ? (
                   <Loader2 className="animate-spin h-4 w-4" />
                 ) : (
                   "Cargar más"
