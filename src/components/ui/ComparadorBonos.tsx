@@ -28,6 +28,19 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { BonoData } from "@/lib/bonoUtils";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { exportBonosToPDF } from "@/lib/exportUtils";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const campos = [
   { key: "nombre", label: "Nombre" },
@@ -81,6 +94,16 @@ export default function ComparadorBonos() {
   const [loading, setLoading] = useState(true);
   const [tasaDescuento, setTasaDescuento] = useState(0.1); // 10% por defecto
 
+  // Filtros avanzados
+  const [filtroMoneda, setFiltroMoneda] = useState("");
+  const [filtroPlazo, setFiltroPlazo] = useState("");
+  const [filtroTasa, setFiltroTasa] = useState("");
+  const [filtroEmisor, setFiltroEmisor] = useState("");
+
+  // Ordenamiento avanzado
+  const [orden, setOrden] = useState("nombre");
+  const [ordenDesc, setOrdenDesc] = useState(false);
+
   useEffect(() => {
     const fetchBonos = async () => {
       setLoading(true);
@@ -113,6 +136,28 @@ export default function ComparadorBonos() {
 
   const bonosSeleccionados = bonos.filter((b) => selected.includes(b.id));
 
+  // Obtener valores únicos para los selects
+  const monedas = Array.from(new Set(bonos.map((b) => b.moneda))).filter(
+    (m) => !!m && m !== ""
+  );
+  const emisores = Array.from(
+    new Set(bonos.map((b) => b.emisorNombre || "")).values()
+  ).filter((e) => !!e && e !== "");
+
+  // Filtrado avanzado
+  const bonosFiltrados = bonos.filter((b) => {
+    return (
+      (!filtroMoneda ||
+        filtroMoneda === "__all__" ||
+        b.moneda === filtroMoneda) &&
+      (!filtroPlazo || b.plazo === Number(filtroPlazo)) &&
+      (!filtroTasa || b.tasaAnual >= Number(filtroTasa)) &&
+      (!filtroEmisor ||
+        filtroEmisor === "__all__" ||
+        (b.emisorNombre || "") === filtroEmisor)
+    );
+  });
+
   // Calcular VAN y TIR para cada bono seleccionado
   const rentabilidad: Record<
     string,
@@ -144,17 +189,252 @@ export default function ComparadorBonos() {
     rentabilidad[bono.id] = { van, tir, flujo: flujoInversionista };
   });
 
+  // Simulador de inversión
+  const [montoInversion, setMontoInversion] = useState(10000);
+
+  // Calcula el flujo de caja simulado para cada bono seleccionado
+  const simulaciones = bonosSeleccionados.map((bono) => {
+    const ratio = montoInversion / bono.valorNominal;
+    const flujo = rentabilidad[bono.id]?.flujo || [];
+    const flujoSimulado = flujo.map((f) => ({
+      ...f,
+      cuota: f.cuota * ratio,
+      interes: f.interes * ratio,
+      amortizacion: f.amortizacion * ratio,
+      saldo: f.saldo * ratio,
+    }));
+    const totalGanancia =
+      flujoSimulado.reduce((acc, f) => acc + (f.cuota > 0 ? f.cuota : 0), 0) +
+      (flujoSimulado[0]?.cuota || 0); // incluye el desembolso inicial negativo
+    return {
+      bono,
+      flujoSimulado,
+      totalGanancia,
+    };
+  });
+
+  // Función de ordenamiento
+  function ordenarBonos(arr: (BonoData & { id: string })[]) {
+    const arrCopia = [...arr];
+    arrCopia.sort((a, b) => {
+      if (orden === "nombre") {
+        return ordenDesc
+          ? b.nombre.localeCompare(a.nombre)
+          : a.nombre.localeCompare(b.nombre);
+      }
+      if (orden === "valorNominal") {
+        return ordenDesc
+          ? b.valorNominal - a.valorNominal
+          : a.valorNominal - b.valorNominal;
+      }
+      if (orden === "plazo") {
+        return ordenDesc ? b.plazo - a.plazo : a.plazo - b.plazo;
+      }
+      if (orden === "tasaAnual") {
+        return ordenDesc
+          ? b.tasaAnual - a.tasaAnual
+          : a.tasaAnual - b.tasaAnual;
+      }
+      if (orden === "van") {
+        // Solo tiene sentido si hay bonos seleccionados
+        const vanA = rentabilidad[a.id]?.van ?? 0;
+        const vanB = rentabilidad[b.id]?.van ?? 0;
+        return ordenDesc ? vanB - vanA : vanA - vanB;
+      }
+      if (orden === "tir") {
+        const tirA = rentabilidad[a.id]?.tir ?? 0;
+        const tirB = rentabilidad[b.id]?.tir ?? 0;
+        return ordenDesc ? tirB - tirA : tirA - tirB;
+      }
+      return 0;
+    });
+    return arrCopia;
+  }
+
+  const bonosFiltradosOrdenados = ordenarBonos(bonosFiltrados);
+
+  // Exportar simulación a PDF
+  function exportarSimulacionPDF() {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text("Simulación de Inversión en Bonos", 14, 18);
+    doc.setFontSize(10);
+    doc.text(
+      `Monto invertido: ${montoInversion.toLocaleString("es-PE", {
+        minimumFractionDigits: 2,
+      })}`,
+      14,
+      26
+    );
+    let y = 34;
+    simulaciones.forEach(({ bono, flujoSimulado, totalGanancia }, idx) => {
+      doc.setFontSize(13);
+      doc.text(`${idx + 1}. ${bono.nombre} (${bono.moneda})`, 14, y);
+      doc.setFontSize(10);
+      doc.text(
+        `Ganancia total estimada: ${bono.moneda} ${totalGanancia.toLocaleString(
+          "es-PE",
+          { minimumFractionDigits: 2 }
+        )}`,
+        14,
+        y + 6
+      );
+      // Use the returned object from autoTable correctly
+      let finalY;
+      autoTable(doc, {
+        startY: y + 10,
+        head: [["Periodo", "Cuota", "Interés", "Amortización", "Saldo"]],
+        body: flujoSimulado.map((f) => [
+          f.periodo,
+          `${bono.moneda} ${f.cuota.toLocaleString("es-PE", {
+            minimumFractionDigits: 2,
+          })}`,
+          `${bono.moneda} ${f.interes.toLocaleString("es-PE", {
+            minimumFractionDigits: 2,
+          })}`,
+          `${bono.moneda} ${f.amortizacion.toLocaleString("es-PE", {
+            minimumFractionDigits: 2,
+          })}`,
+          `${bono.moneda} ${f.saldo.toLocaleString("es-PE", {
+            minimumFractionDigits: 2,
+          })}`,
+        ]),
+        theme: "grid",
+        headStyles: {
+          fillColor: [41, 128, 185],
+          textColor: 255,
+          fontSize: 9,
+        },
+        styles: { fontSize: 8, cellPadding: 2 },
+        margin: { left: 14, right: 14 },
+        didDrawPage: (data) => {
+          if (data.cursor) {
+            finalY = data.cursor.y;
+          }
+        },
+      });
+      y = (finalY || y + 50) + 10;
+    });
+    doc.save("simulacion_bonos.pdf");
+  }
+
   return (
     <Card className="p-6 max-w-6xl mx-auto mt-6">
       <h2 className="text-xl font-bold mb-4 text-blue-800">
         Comparador de Bonos
       </h2>
+      {/* Filtros avanzados y exportar */}
+      <div className="mb-6 flex flex-wrap gap-4 items-end">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            Moneda
+          </label>
+          <Select
+            value={filtroMoneda || "__all__"}
+            onValueChange={(v) => setFiltroMoneda(v === "__all__" ? "" : v)}
+          >
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="Todas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todas</SelectItem>
+              {monedas.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {m}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            Plazo (años)
+          </label>
+          <Input
+            type="number"
+            min={0}
+            value={filtroPlazo}
+            onChange={(e) => setFiltroPlazo(e.target.value)}
+            placeholder="Todos"
+            className="w-24"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            Tasa mínima (%)
+          </label>
+          <Input
+            type="number"
+            min={0}
+            value={filtroTasa}
+            onChange={(e) => setFiltroTasa(e.target.value)}
+            placeholder="Todas"
+            className="w-24"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            Emisor
+          </label>
+          <Select
+            value={filtroEmisor || "__all__"}
+            onValueChange={(v) => setFiltroEmisor(v === "__all__" ? "" : v)}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todos</SelectItem>
+              {emisores.map((e) => (
+                <SelectItem key={e} value={e}>
+                  {e}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            Ordenar por
+          </label>
+          <Select value={orden} onValueChange={setOrden}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="nombre">Nombre</SelectItem>
+              <SelectItem value="valorNominal">Monto</SelectItem>
+              <SelectItem value="plazo">Plazo</SelectItem>
+              <SelectItem value="tasaAnual">Tasa Anual</SelectItem>
+              <SelectItem value="van">VAN</SelectItem>
+              <SelectItem value="tir">TIR</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          variant={ordenDesc ? "secondary" : "outline"}
+          className="h-9"
+          onClick={() => setOrdenDesc((v) => !v)}
+          title={ordenDesc ? "Orden descendente" : "Orden ascendente"}
+        >
+          {ordenDesc ? "↓" : "↑"}
+        </Button>
+        <Button
+          variant="outline"
+          className="ml-auto flex items-center gap-2"
+          onClick={() => exportBonosToPDF(bonosFiltrados)}
+          disabled={bonosFiltrados.length === 0}
+        >
+          <Download className="w-4 h-4" /> Exportar PDF
+        </Button>
+      </div>
+      {/* Input de tasa de descuento para VAN */}
       <div className="mb-4 flex flex-col md:flex-row md:items-center gap-4">
         <label className="flex items-center gap-2">
           <span className="text-sm text-gray-700">
             Tasa de descuento para VAN:
           </span>
-          <input
+          <Input
             type="number"
             step="0.01"
             min="0"
@@ -212,7 +492,7 @@ export default function ComparadorBonos() {
       ) : (
         <>
           <div className="mb-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {bonos.map((bono) => (
+            {bonosFiltradosOrdenados.map((bono) => (
               <label
                 key={bono.id}
                 className="flex items-center gap-2 bg-blue-50 rounded-lg px-3 py-2 cursor-pointer border border-blue-100 hover:bg-blue-100 transition"
@@ -251,8 +531,100 @@ export default function ComparadorBonos() {
                   <tbody>
                     {campos.map((campo) => (
                       <tr key={campo.key} className="border-b hover:bg-blue-50">
-                        <td className="p-2 text-left font-medium text-gray-700">
+                        <td className="p-2 text-left font-medium text-gray-700 flex items-center gap-1">
                           {campo.label}
+                          {(() => {
+                            switch (campo.key) {
+                              case "tasaMercado":
+                                return (
+                                  <UiTooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="ml-1 cursor-help text-blue-700">
+                                        ⓘ
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs text-xs">
+                                      <b>TREA</b>: Tasa de Rendimiento Efectiva
+                                      Anual. Representa el rendimiento real
+                                      considerando todos los costos y
+                                      comisiones.
+                                    </TooltipContent>
+                                  </UiTooltip>
+                                );
+                              case "comisionEmisor":
+                                return (
+                                  <UiTooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="ml-1 cursor-help text-blue-700">
+                                        ⓘ
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs text-xs">
+                                      Comisión que paga el emisor al colocar el
+                                      bono.
+                                    </TooltipContent>
+                                  </UiTooltip>
+                                );
+                              case "comisionBonista":
+                                return (
+                                  <UiTooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="ml-1 cursor-help text-blue-700">
+                                        ⓘ
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs text-xs">
+                                      Comisión que paga el inversionista al
+                                      comprar el bono.
+                                    </TooltipContent>
+                                  </UiTooltip>
+                                );
+                              case "tasaAnual":
+                                return (
+                                  <UiTooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="ml-1 cursor-help text-blue-700">
+                                        ⓘ
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs text-xs">
+                                      Tasa de interés anual nominal o efectiva,
+                                      según el tipo de tasa.
+                                    </TooltipContent>
+                                  </UiTooltip>
+                                );
+                              case "van":
+                                return (
+                                  <UiTooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="ml-1 cursor-help text-blue-700">
+                                        ⓘ
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs text-xs">
+                                      <b>VAN</b>: Valor Actual Neto. Suma de los
+                                      flujos descontados a la tasa seleccionada.
+                                    </TooltipContent>
+                                  </UiTooltip>
+                                );
+                              case "tir":
+                                return (
+                                  <UiTooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="ml-1 cursor-help text-blue-700">
+                                        ⓘ
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs text-xs">
+                                      <b>TIR</b>: Tasa Interna de Retorno. Tasa
+                                      a la que el VAN es cero.
+                                    </TooltipContent>
+                                  </UiTooltip>
+                                );
+                              default:
+                                return null;
+                            }
+                          })()}
                         </td>
                         {bonosSeleccionados.map((bono) => {
                           let value: React.ReactNode = "-";
@@ -393,6 +765,101 @@ export default function ComparadorBonos() {
                     ))}
                   </div>
                 )}
+              </div>
+
+              <div className="mt-10">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  Simulador de Inversión
+                </h3>
+                <div className="flex items-center gap-4 mb-4">
+                  <label className="text-sm text-gray-700 font-medium">
+                    Monto a invertir:
+                  </label>
+                  <Input
+                    type="number"
+                    min={100}
+                    step={100}
+                    value={montoInversion}
+                    onChange={(e) => setMontoInversion(Number(e.target.value))}
+                    className="w-32"
+                  />
+                  <span className="text-xs text-gray-500">
+                    (Simula el flujo de caja y ganancia para el monto ingresado)
+                  </span>
+                  <Button
+                    variant="outline"
+                    className="ml-auto flex items-center gap-2"
+                    onClick={exportarSimulacionPDF}
+                    disabled={simulaciones.length === 0}
+                  >
+                    <Download className="w-4 h-4" /> Exportar simulación
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {simulaciones.map(
+                    ({ bono, flujoSimulado, totalGanancia }) => (
+                      <Card key={bono.id} className="p-4">
+                        <h4 className="font-semibold text-blue-800 mb-2">
+                          {bono.nombre}
+                        </h4>
+                        <div className="text-sm mb-2">
+                          <b>Ganancia total estimada:</b> {bono.moneda}{" "}
+                          {totalGanancia.toLocaleString("es-PE", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-xs text-center border border-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="border px-2 py-1">Periodo</th>
+                                <th className="border px-2 py-1">Cuota</th>
+                                <th className="border px-2 py-1">Interés</th>
+                                <th className="border px-2 py-1">
+                                  Amortización
+                                </th>
+                                <th className="border px-2 py-1">Saldo</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {flujoSimulado.map((f) => (
+                                <tr key={f.periodo}>
+                                  <td className="border px-2 py-1">
+                                    {f.periodo}
+                                  </td>
+                                  <td className="border px-2 py-1">
+                                    {bono.moneda}{" "}
+                                    {f.cuota.toLocaleString("es-PE", {
+                                      minimumFractionDigits: 2,
+                                    })}
+                                  </td>
+                                  <td className="border px-2 py-1">
+                                    {bono.moneda}{" "}
+                                    {f.interes.toLocaleString("es-PE", {
+                                      minimumFractionDigits: 2,
+                                    })}
+                                  </td>
+                                  <td className="border px-2 py-1">
+                                    {bono.moneda}{" "}
+                                    {f.amortizacion.toLocaleString("es-PE", {
+                                      minimumFractionDigits: 2,
+                                    })}
+                                  </td>
+                                  <td className="border px-2 py-1">
+                                    {bono.moneda}{" "}
+                                    {f.saldo.toLocaleString("es-PE", {
+                                      minimumFractionDigits: 2,
+                                    })}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </Card>
+                    )
+                  )}
+                </div>
               </div>
             </>
           ) : (
