@@ -68,13 +68,11 @@ const roleNavigationMap: Record<string, typeof navigationItems> = {
     { name: "Dashboard", href: "/emisor/dashboard", icon: Home },
     { name: "Registrar Bono", href: "/bonos/register", icon: PlusCircle },
     { name: "Listar Bonos", href: "/bonos/list", icon: List },
-    { name: "Estadísticas", href: "/bonos/estadisticas", icon: BarChart2 },
     { name: "Análisis de Bonos", href: "/bonos/analisis", icon: BarChart2 },
   ],
   inversionista: [
     { name: "Dashboard", href: "/inversionista/dashboard", icon: Home },
     { name: "Listar Bonos", href: "/bonos/list", icon: List },
-    { name: "Estadísticas", href: "/bonos/estadisticas", icon: BarChart2 },
     { name: "Análisis de Bonos", href: "/bonos/analisis", icon: BarChart2 },
   ],
   // Ejemplo para admin o auditor:

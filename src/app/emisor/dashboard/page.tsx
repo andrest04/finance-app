@@ -53,7 +53,6 @@ export default function EmisorDashboard() {
 
     fetchData();
   }, [firebaseUser]);
-
   const quickActions = [
     {
       title: "Registrar Nuevo Bono",
@@ -70,10 +69,10 @@ export default function EmisorDashboard() {
       color: "bg-blue-500",
     },
     {
-      title: "Estadísticas",
-      description: "Visualiza el rendimiento de tus bonos",
+      title: "Análisis de Bonos",
+      description: "Analiza y compara el rendimiento de tus bonos",
       icon: BarChart2,
-      href: "/bonos/estadisticas",
+      href: "/bonos/analisis",
       color: "bg-purple-500",
     },
   ];

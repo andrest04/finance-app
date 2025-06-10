@@ -83,11 +83,6 @@ const faqs = [
     answer:
       "En la sección 'Análisis de Bonos' puede comparar diferentes bonos, ver sus características principales, calcular indicadores financieros y realizar análisis de sensibilidad para diferentes escenarios.",
   },
-  {
-    question: "¿Cómo interpreto las estadísticas de los bonos?",
-    answer:
-      "Las estadísticas muestran información agregada sobre los bonos disponibles, incluyendo tasas promedio, volúmenes de emisión, próximos vencimientos y tendencias del mercado. Esta información le ayuda a tomar decisiones de inversión informadas.",
-  },
 ];
 
 export default function HelpPage() {
@@ -104,12 +99,11 @@ export default function HelpPage() {
               <div className="p-4 bg-blue-50 rounded-lg">
                 <h3 className="font-semibold text-blue-800 mb-2">
                   Para Emisores
-                </h3>
+                </h3>{" "}
                 <ul className="list-disc list-inside text-sm text-gray-700 space-y-2">
                   <li>Registre sus bonos con todos los detalles requeridos</li>
                   <li>Monitoree el rendimiento de sus emisiones</li>
                   <li>Gestiona los pagos y vencimientos</li>
-                  <li>Accede a estadísticas de mercado</li>
                 </ul>
               </div>
               <div className="p-4 bg-green-50 rounded-lg">
