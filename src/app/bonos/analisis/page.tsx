@@ -1,12 +1,12 @@
 "use client";
 
 import ComparadorBonos from "@/components/ui/ComparadorBonos";
-import { AnalisisSensibilidad } from "@/components/bonos/AnalisisSensibilidad";
+import TablaFlujosCaja from "@/components/bonos/TablaFlujosCaja";
 import ProtectedRoute from "@/components/RouteGuard";
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
 import type { BonoData } from "@/lib/bonoUtils";
-import { TrendingUp, AlertTriangle, Info } from "lucide-react";
+import { TrendingUp, AlertTriangle, Info, Table2 } from "lucide-react";
 
 export default function AnalisisBonosPage() {
   const [selectedBonos, setSelectedBonos] = useState<
@@ -111,11 +111,26 @@ export default function AnalisisBonosPage() {
                 </div>{" "}
               </Card>
             </div>
-          </div>
-
+          </div>{" "}
           {selectedBonos.length > 0 && (
-            <div className="mt-8">
-              <AnalisisSensibilidad bonosSeleccionados={selectedBonos} />
+            <div className="mt-8 space-y-6">
+              {/* Tabla de Flujos de Caja para cada bono seleccionado */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <Table2 className="w-6 h-6 text-blue-600" />
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    Flujos de Caja Detallados
+                  </h2>
+                </div>
+                <p className="text-gray-600">
+                  Análisis detallado de los flujos de caja calculados con el
+                  método francés para cada bono seleccionado.
+                </p>
+
+                {selectedBonos.map((bono) => (
+                  <TablaFlujosCaja key={bono.id} bono={bono} />
+                ))}
+              </div>
             </div>
           )}
         </div>

@@ -5,16 +5,6 @@ import { getDocs, collection, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { Card } from "@/components/ui/card";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip,
-} from "recharts";
 import { ArrowUpDown, Loader2 } from "lucide-react";
 import type { BonoData } from "@/lib/bonoUtils";
 import {
@@ -65,7 +55,6 @@ export default function ComparadorBonos({
   const [bonos, setBonos] = useState<(BonoData & { id: string })[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tasaDescuento, setTasaDescuento] = useState(0.1);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // Filtros avanzados
@@ -231,17 +220,6 @@ export default function ComparadorBonos({
           )}
 
           <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <Label>Tasa de Descuento (%)</Label>
-              <Input
-                type="number"
-                value={tasaDescuento * 100}
-                onChange={(e) => setTasaDescuento(Number(e.target.value) / 100)}
-                min="0"
-                max="100"
-                step="0.1"
-              />
-            </div>
             <div className="flex items-center gap-2">
               <Label>Ordenar por:</Label>
               <Select value={orden} onValueChange={setOrden}>
@@ -335,41 +313,8 @@ export default function ComparadorBonos({
                 </div>
               </div>
             </Card>
-          ))}
+          ))}{" "}
         </div>
-      )}
-
-      {selected.length > 0 && (
-        <Card className="p-6 mt-6">
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800">
-              Análisis Comparativo
-            </h3>
-            <div className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={selected.map((id) => {
-                    const bono = bonos.find((b) => b.id === id);
-                    return {
-                      nombre: bono?.nombre,
-                      tasaAnual: bono?.tasaAnual,
-                      tasaMercado: bono?.tasaMercado,
-                    };
-                  })}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="nombre" />
-                  <YAxis />
-                  <RechartsTooltip />
-                  <Legend />
-                  <Bar dataKey="tasaAnual" name="Tasa Anual" fill="#10B981" />
-                  <Bar dataKey="tasaMercado" name="TREA" fill="#3B82F6" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </Card>
       )}
     </div>
   );
