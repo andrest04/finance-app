@@ -8,6 +8,12 @@ import { useCurrentUser } from "@/lib/useCurrentUser";
 import { Button } from "@/components/ui/button";
 import type { BonoData } from "@/lib/bonoUtils";
 import ProtectedRoute from "@/components/RouteGuard";
+import { Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 
 export default function DetalleBonoPage() {
   const { firebaseUser } = useCurrentUser();
@@ -100,8 +106,19 @@ export default function DetalleBonoPage() {
     <ProtectedRoute requiredRole={undefined}>
       <main className="p-6 max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-800">
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
             📄 Detalle del Bono
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={0} className="cursor-pointer">
+                  <Info className="w-5 h-5 text-blue-400" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                Aquí puedes ver todos los datos y condiciones del bono. Haz clic
+                en los íconos de ayuda para más información.
+              </TooltipContent>
+            </Tooltip>
           </h1>
           <Button onClick={() => router.push("/bonos/list")}>
             ← Volver a la lista
@@ -110,43 +127,119 @@ export default function DetalleBonoPage() {
 
         {Object.entries(secciones).map(([titulo, campos]) => (
           <section key={titulo} className="space-y-3">
-            <h2 className="text-lg font-semibold text-blue-700">{titulo}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-blue-700">{titulo}</h2>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={0} className="cursor-pointer">
+                    <Info className="w-4 h-4 text-blue-400" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Información sobre {titulo.toLowerCase()}.
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
               {campos.map((campo) => {
                 const typedCampo = campo as keyof BonoData;
+                let valor = "";
+                if (
+                  campo === "frecuenciaPago" ||
+                  campo === "frecuenciaCapitalizacion"
+                ) {
+                  valor =
+                    frecuenciaTexto[String(bono[typedCampo])] ||
+                    String(bono[typedCampo] ?? "");
+                } else if (
+                  typeof bono[typedCampo] === "object" &&
+                  bono[typedCampo] !== null &&
+                  "seconds" in bono[typedCampo]
+                ) {
+                  valor = new Date(
+                    (bono[typedCampo] as { seconds: number }).seconds * 1000
+                  ).toLocaleDateString("es-PE");
+                } else if (
+                  [
+                    "tasaAnual",
+                    "tasaMercado",
+                    "comisionEmisor",
+                    "comisionBonista",
+                  ].includes(campo)
+                ) {
+                  valor = formatPercentage(bono[typedCampo] ?? 0);
+                } else if (campo === "valorNominal") {
+                  valor = formatCurrency(bono[typedCampo] ?? 0);
+                } else if (["plazo", "nGracia"].includes(campo)) {
+                  valor = formatInteger(bono[typedCampo] ?? "");
+                } else if (
+                  typeof bono[typedCampo] === "object" ||
+                  typeof bono[typedCampo] === "undefined"
+                ) {
+                  valor = "-";
+                } else {
+                  valor = String(bono[typedCampo]);
+                }
+                // Badge visual para campos clave
+                let badge = null;
+                if (campo === "tipoGracia") {
+                  badge = (
+                    <span
+                      className={`ml-2 px-2 py-0.5 rounded text-xs font-semibold ${
+                        valor === "Total"
+                          ? "bg-blue-100 text-blue-700"
+                          : valor === "Parcial"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {valor}
+                    </span>
+                  );
+                }
+                if (campo === "tipoTasa") {
+                  badge = (
+                    <span
+                      className={`ml-2 px-2 py-0.5 rounded text-xs font-semibold ${
+                        valor === "Nominal"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-purple-100 text-purple-700"
+                      }`}
+                    >
+                      {valor}
+                    </span>
+                  );
+                }
+                if (campo === "moneda") {
+                  badge = (
+                    <span className="ml-2 px-2 py-0.5 rounded text-xs font-semibold bg-gray-200 text-gray-700">
+                      {valor}
+                    </span>
+                  );
+                }
                 return (
                   <div
                     key={campo}
-                    className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white"
+                    className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white flex flex-col gap-1"
                   >
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
-                      {etiquetasBonito[campo] || campo}
-                    </p>
-                    <p className="text-sm text-gray-800 break-words">
-                      {campo === "frecuenciaPago" ||
-                      campo === "frecuenciaCapitalizacion"
-                        ? frecuenciaTexto[String(bono[typedCampo])] ||
-                          String(bono[typedCampo] ?? "")
-                        : typeof bono[typedCampo] === "object" &&
-                          bono[typedCampo] !== null &&
-                          "seconds" in bono[typedCampo]
-                        ? new Date(
-                            (bono[typedCampo] as { seconds: number }).seconds *
-                              1000
-                          ).toLocaleDateString("es-PE")
-                        : campo === "tasaAnual" ||
-                          campo === "tasaMercado" ||
-                          campo === "comisionEmisor" ||
-                          campo === "comisionBonista"
-                        ? formatPercentage(bono[typedCampo] ?? 0)
-                        : campo === "valorNominal"
-                        ? formatCurrency(bono[typedCampo] ?? 0)
-                        : campo === "plazo" || campo === "nGracia"
-                        ? formatInteger(bono[typedCampo] ?? "")
-                        : typeof bono[typedCampo] === "object" ||
-                          typeof bono[typedCampo] === "undefined"
-                        ? ""
-                        : String(bono[typedCampo])}
+                    <div className="flex items-center gap-1">
+                      <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
+                        {etiquetasBonito[campo] || campo}
+                      </p>
+                      {badge}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span tabIndex={0} className="cursor-pointer">
+                            <Info className="w-3 h-3 text-gray-400" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          ¿Qué significa {etiquetasBonito[campo] || campo}?
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <p className="text-base text-gray-800 break-words font-mono">
+                      {valor}
                     </p>
                   </div>
                 );
