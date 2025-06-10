@@ -21,7 +21,7 @@ import {
   FlujoBono,
 } from "@/lib/indicadoresBono";
 import { calcularFlujoFrances } from "@/lib/francesMetod";
-import { calcularTCEABono } from "@/lib/bonoUtils";
+import { calcularTCEABono, calcularTREABono } from "@/lib/bonoUtils";
 
 export default function DetalleBonoPage() {
   const { firebaseUser, profile } = useCurrentUser();
@@ -111,10 +111,10 @@ export default function DetalleBonoPage() {
         router.push("/bonos/list");
       }
     });
-  }, [firebaseUser, id, router, profile]);
-  // --- Indicadores financieros: duración, duración modificada, convexidad y TCEA ---
+  }, [firebaseUser, id, router, profile]); // --- Indicadores financieros: duración, duración modificada, convexidad y TCEA ---
   let indicadores = null;
   let tcea = 0;
+  let treaBono = 0;
   if (bono) {
     // Solo método francés por ahora
     const mapGracia = (tipo: string): "Ninguno" | "Total" | "Parcial" => {
@@ -144,8 +144,9 @@ export default function DetalleBonoPage() {
       convexidad: calcularConvexidad(flujos, tasaPeriodo),
     };
 
-    // Calcular TCEA
+    // Calcular TCEA y TREA
     tcea = calcularTCEABono(bono);
+    treaBono = calcularTREABono(bono);
   }
 
   if (!firebaseUser)
@@ -462,16 +463,17 @@ export default function DetalleBonoPage() {
                     <span tabIndex={0} className="cursor-pointer">
                       <Info className="w-3 h-3 text-gray-400" />
                     </span>
-                  </TooltipTrigger>
+                  </TooltipTrigger>{" "}
                   <TooltipContent>
-                    Tasa de rendimiento efectivo anual desde el punto de vista
-                    del inversionista. Incluye todas las comisiones y costos del
-                    bonista.
+                    Tasa de rendimiento efectivo anual calculada automáticamente
+                    desde el punto de vista del inversionista. Incluye todas las
+                    comisiones y costos del bonista, calculada usando el método
+                    francés.
                   </TooltipContent>
-                </Tooltip>
+                </Tooltip>{" "}
               </div>
               <p className="text-base text-gray-800 font-mono">
-                {bono.tasaMercado.toFixed(4)}%
+                {treaBono.toFixed(4)}%
               </p>
               <p className="text-xs text-gray-500 mt-1">
                 Rendimiento real anual para el inversionista considerando
@@ -480,10 +482,12 @@ export default function DetalleBonoPage() {
             </div>
           </div>
           <div className="text-xs text-gray-500 mt-2">
+            {" "}
             <span>
               La TCEA muestra el costo real del financiamiento para el emisor,
               mientras que la TREA muestra el rendimiento real para el
-              inversionista.
+              inversionista. Ambas tasas se calculan automáticamente
+              considerando todas las comisiones.
             </span>
           </div>
         </section>

@@ -9,7 +9,12 @@ import {
   limit,
 } from "firebase/firestore";
 import { User } from "firebase/auth";
-import { calcularTCEA, type TCEAParams } from "./tceaCalculator";
+import {
+  calcularTCEA,
+  calcularTREA,
+  type TCEAParams,
+  type TREAParams,
+} from "./tceaCalculator";
 
 export interface BonoData {
   nombre: string;
@@ -332,6 +337,37 @@ export function calcularTCEABono(bono: BonoData): number {
     return resultado.tcea;
   } catch (error) {
     console.error("Error calculando TCEA:", error);
+    return 0;
+  }
+}
+
+/**
+ * Calcula la TREA de un bono desde el punto de vista del inversionista
+ */
+export function calcularTREABono(bono: BonoData): number {
+  try {
+    const mapGracia = (tipo: string): "Ninguno" | "Total" | "Parcial" => {
+      if (tipo === "Sin Gracia" || tipo === "Ninguno") return "Ninguno";
+      if (tipo === "Total") return "Total";
+      if (tipo === "Parcial") return "Parcial";
+      return "Ninguno";
+    };
+
+    const treaParams: TREAParams = {
+      valorNominal: bono.valorNominal,
+      tasaAnual: bono.tasaAnual,
+      frecuenciaPago: bono.frecuenciaPago,
+      plazo: bono.plazo,
+      gracia: mapGracia(bono.tipoGracia),
+      numPeriodosGracia: bono.nGracia || 0,
+      comisionEmisor: bono.comisionEmisor,
+      comisionBonista: bono.comisionBonista,
+    };
+
+    const resultado = calcularTREA(treaParams);
+    return resultado.trea;
+  } catch (error) {
+    console.error("Error calculando TREA:", error);
     return 0;
   }
 }
