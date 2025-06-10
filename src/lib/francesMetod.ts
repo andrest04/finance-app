@@ -1,3 +1,14 @@
+/**
+ * Cálculo de flujos de caja utilizando el Método Francés
+ *
+ * El método francés se caracteriza por:
+ * - Cuotas constantes durante toda la vida del bono
+ * - La amortización aumenta y los intereses disminuyen en cada período
+ * - Fórmula basada en anualidades con valor presente
+ *
+ * Este es el único método de amortización implementado en la aplicación.
+ */
+
 export type BonoParams = {
   valorNominal: number;
   tasaAnual: number; // Tasa de interés anual (%)

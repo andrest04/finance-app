@@ -101,7 +101,7 @@ export const getBonoStats = async (userId?: string): Promise<BonoStats> => {
       return fechaB - fechaA;
     });
 
-    // Calcular métricas básicas
+    // Calcular estadísticas
     const totalBonos = bonos.length;
     const tasaPromedio =
       bonos.length > 0

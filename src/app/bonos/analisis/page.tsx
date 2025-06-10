@@ -16,16 +16,16 @@ export default function AnalisisBonosPage() {
   return (
     <ProtectedRoute requiredRole={undefined}>
       <div className="p-6 max-w-7xl mx-auto space-y-8">
+        {" "}
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold text-gray-800">
-            Análisis de Bonos
+            Análisis de Bonos - Método Francés
           </h1>
           <p className="text-gray-600">
-            Compare y analice diferentes bonos para tomar decisiones de
-            inversión informadas.
+            Compare y analice diferentes bonos calculados con el método francés
+            para tomar decisiones de inversión informadas.
           </p>
         </div>
-
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">

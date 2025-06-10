@@ -1,4 +1,22 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Finance App - Calculadora de Bonos Método Francés
+
+Esta es una aplicación web desarrollada con [Next.js](https://nextjs.org) para el cálculo y análisis de bonos corporativos utilizando exclusivamente el **método francés** de amortización.
+
+## Características Principales
+
+- 📊 **Cálculo de flujos de caja** con método francés
+- 📈 **Análisis comparativo** de múltiples bonos
+- 🎯 **Análisis de sensibilidad** a cambios en tasas de descuento
+- 👥 **Gestión de usuarios** (Emisores e Inversionistas)
+- 🔍 **Filtros avanzados** para comparación de bonos
+- 📱 **Interfaz responsiva** para todos los dispositivos
+
+## Método Francés
+
+El método francés de amortización se caracteriza por:
+- Cuotas constantes durante toda la vida del bono
+- Amortización creciente e intereses decrecientes
+- Cálculo basado en la fórmula de anualidades
 
 ## Getting Started
 
