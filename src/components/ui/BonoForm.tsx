@@ -11,7 +11,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { saveBono, BonoData } from "@/lib/bonoUtils";
+import { saveBono, BonoData, calcularTREABono } from "@/lib/bonoUtils";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -42,7 +42,6 @@ const bonoFormSchema = z.object({
   fechaEmision: z.string().min(1, "La fecha de emisión es requerida"),
   comisionEmisor: z.string().min(1, "La comisión del emisor es requerida"),
   comisionBonista: z.string().min(1, "La comisión del bonista es requerida"),
-  tasaMercado: z.string().min(1, "La tasa de mercado es requerida"),
 });
 
 type BonoFormData = z.infer<typeof bonoFormSchema>;
@@ -78,7 +77,6 @@ export default function BonoForm() {
 
     loadUserSettings();
   }, [firebaseUser]);
-
   const form = useForm<BonoFormData>({
     resolver: zodResolver(bonoFormSchema),
     defaultValues: {
@@ -95,7 +93,6 @@ export default function BonoForm() {
       fechaEmision: new Date().toISOString().split("T")[0],
       comisionEmisor: "",
       comisionBonista: "",
-      tasaMercado: "",
     },
   });
 
@@ -112,9 +109,7 @@ export default function BonoForm() {
     try {
       const emisorNombre = profile
         ? `${profile.firstName} ${profile.lastName}`
-        : "";
-
-      // Crear el objeto base sin campos undefined
+        : ""; // Crear el objeto base sin campos undefined
       const transformedData: BonoData = {
         nombre: data.nombre,
         valorNominal: parseFloat(data.valorNominal),
@@ -127,7 +122,7 @@ export default function BonoForm() {
         fechaEmision: data.fechaEmision,
         comisionEmisor: parseFloat(data.comisionEmisor),
         comisionBonista: parseFloat(data.comisionBonista),
-        tasaMercado: parseFloat(data.tasaMercado),
+        tasaMercado: 0, // Se calculará automáticamente después
         userId: firebaseUser.uid,
         emisorNombre,
       };
@@ -141,6 +136,9 @@ export default function BonoForm() {
       if (data.nGracia) {
         transformedData.nGracia = parseInt(data.nGracia);
       }
+
+      // Calcular automáticamente la tasa de mercado (TREA)
+      transformedData.tasaMercado = calcularTREABono(transformedData);
 
       await saveBono(firebaseUser, transformedData);
       toast.success("¡Bono guardado correctamente!");
@@ -238,7 +236,6 @@ export default function BonoForm() {
           </div>
         </div>
       </section>
-
       {/* TASA Y FRECUENCIA */}
       <section className="border border-blue-300 rounded-md p-4 space-y-4 bg-white shadow-sm">
         <h3 className="text-blue-700 font-semibold text-lg flex items-center gap-2">
@@ -372,7 +369,6 @@ export default function BonoForm() {
           )}
         </div>
       </section>
-
       {/* PLAZO Y GRACIA */}
       <section className="border border-blue-300 rounded-md p-4 space-y-4 bg-white shadow-sm">
         <h3 className="text-blue-700 font-semibold text-lg flex items-center gap-2">
@@ -462,12 +458,11 @@ export default function BonoForm() {
             )}
           </div>
         </div>
-      </section>
-
-      {/* COSTOS Y TASAS DE DESCUENTO */}
+      </section>{" "}
+      {/* COSTOS */}
       <section className="border border-blue-300 rounded-md p-4 space-y-4 bg-white shadow-sm">
         <h3 className="text-blue-700 font-semibold text-lg flex items-center gap-2">
-          Costos y Descuento
+          Costos de Transacción
           <Tooltip>
             <TooltipTrigger asChild>
               <span tabIndex={0} className="cursor-pointer">
@@ -475,7 +470,8 @@ export default function BonoForm() {
               </span>
             </TooltipTrigger>
             <TooltipContent>
-              Comisiones y tasa de mercado (TREA).
+              Comisiones del emisor y bonista. La tasa de mercado (TREA) se
+              calculará automáticamente.
             </TooltipContent>
           </Tooltip>
         </h3>
@@ -507,21 +503,31 @@ export default function BonoForm() {
             )}
           </div>
           <div className="space-y-2">
-            <Label>Tasa Mercado (TREA)</Label>
-            <Input
-              {...form.register("tasaMercado")}
-              type="number"
-              step="0.01"
-            />
-            {form.formState.errors.tasaMercado && (
-              <p className="text-sm text-red-500">
-                {form.formState.errors.tasaMercado.message}
+            <Label className="flex items-center gap-2">
+              Tasa de Mercado (TREA)
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={0} className="cursor-pointer">
+                    <Info className="w-3 h-3 text-blue-400" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Se calculará automáticamente basado en los datos del bono
+                  usando el método francés.
+                </TooltipContent>
+              </Tooltip>
+            </Label>
+            <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
+              <p className="text-sm text-gray-600 font-medium">
+                📊 Se calculará automáticamente
               </p>
-            )}
+              <p className="text-xs text-gray-500 mt-1">
+                Basado en el método francés y los parámetros del bono
+              </p>
+            </div>
           </div>
         </div>
       </section>
-
       {/* BOTONES */}
       <div className="flex justify-end gap-4">
         <Button

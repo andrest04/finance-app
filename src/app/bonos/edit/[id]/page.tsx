@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { BonoData } from "@/lib/bonoUtils";
+import { calcularTREABono } from "@/lib/bonoUtils";
 
 export default function EditarBonoPage() {
   const { firebaseUser } = useCurrentUser();
@@ -44,13 +45,12 @@ export default function EditarBonoPage() {
   const handleSelect = (name: keyof BonoData, value: string) => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firebaseUser || !id) return;
 
-    const ref = doc(db, "bonds", String(id));
-    await updateDoc(ref, {
+    // Preparar los datos actualizados
+    const updatedData = {
       ...form,
       valorNominal: parseFloat(String(form.valorNominal)),
       tasaAnual: parseFloat(String(form.tasaAnual)),
@@ -62,9 +62,22 @@ export default function EditarBonoPage() {
       nGracia: form.nGracia ? parseInt(String(form.nGracia)) : undefined,
       comisionEmisor: parseFloat(String(form.comisionEmisor)),
       comisionBonista: parseFloat(String(form.comisionBonista)),
-      tasaMercado: parseFloat(String(form.tasaMercado)),
+    } as BonoData;
+
+    // Calcular automáticamente la tasa de mercado (TREA)
+    try {
+      updatedData.tasaMercado = calcularTREABono(updatedData);
+    } catch (error) {
+      console.error("Error calculando TREA:", error);
+      updatedData.tasaMercado = 0;
+    }
+    const ref = doc(db, "bonds", String(id));
+    await updateDoc(ref, {
+      ...updatedData,
     });
-    setMensaje("✅ Bono actualizado correctamente.");
+    setMensaje(
+      "✅ Bono actualizado correctamente. TREA recalculado automáticamente."
+    );
   };
 
   if (!firebaseUser)
@@ -257,15 +270,19 @@ export default function EditarBonoPage() {
               value={form.comisionBonista ?? ""}
               onChange={handleChange}
             />
-          </div>
+          </div>{" "}
           <div>
             <Label>Tasa de Mercado (TREA)</Label>
-            <Input
-              name="tasaMercado"
-              type="number"
-              value={form.tasaMercado ?? ""}
-              onChange={handleChange}
-            />
+            <div className="space-y-2">
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-sm text-blue-700 font-medium">
+                  📊 Valor actual: {form.tasaMercado?.toFixed(4) || "0.0000"}%
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Se recalculará automáticamente al guardar cambios
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
