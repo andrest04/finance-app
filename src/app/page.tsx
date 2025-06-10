@@ -1,24 +1,45 @@
 "use client";
 
 import { useEffect } from "react";
-import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { auth } from "@/lib/firebase";
+import { useCurrentUser } from "@/lib/useCurrentUser";
 
 export default function Home() {
   const router = useRouter();
+  const { firebaseUser, profile, loading } = useCurrentUser();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        router.push("/welcome");
-      } else {
-        router.push("/login");
-      }
+    console.log("[DEBUG] Estado de autenticación:", {
+      firebaseUser,
+      profile,
+      loading,
     });
-
-    return () => unsubscribe();
-  }, [router]);
+    if (loading) return;
+    if (!firebaseUser) {
+      console.log("[DEBUG] Usuario no autenticado, redirigiendo a /login");
+      router.replace("/login");
+      return;
+    }
+    if (!profile?.role) {
+      console.log(
+        "[DEBUG] Usuario autenticado pero sin rol, redirigiendo a /select-role"
+      );
+      router.replace("/select-role");
+      return;
+    }
+    if (profile.role === "emisor") {
+      console.log("[DEBUG] Usuario emisor, redirigiendo a /emisor/dashboard");
+      router.replace("/emisor/dashboard");
+    } else if (profile.role === "inversionista") {
+      console.log(
+        "[DEBUG] Usuario inversionista, redirigiendo a /inversionista/dashboard"
+      );
+      router.replace("/inversionista/dashboard");
+    } else {
+      console.log("[DEBUG] Rol desconocido, redirigiendo a /login");
+      router.replace("/login"); // fallback
+    }
+  }, [firebaseUser, profile, loading, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

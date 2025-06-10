@@ -1,0 +1,19 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "inversiones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "usuarioId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaInversion",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
