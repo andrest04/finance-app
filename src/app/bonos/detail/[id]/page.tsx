@@ -21,6 +21,7 @@ import {
   FlujoBono,
 } from "@/lib/indicadoresBono";
 import { calcularFlujoFrances } from "@/lib/francesMetod";
+import { calcularTCEABono } from "@/lib/bonoUtils";
 
 export default function DetalleBonoPage() {
   const { firebaseUser, profile } = useCurrentUser();
@@ -111,9 +112,9 @@ export default function DetalleBonoPage() {
       }
     });
   }, [firebaseUser, id, router, profile]);
-
-  // --- Indicadores financieros: duración, duración modificada y convexidad ---
+  // --- Indicadores financieros: duración, duración modificada, convexidad y TCEA ---
   let indicadores = null;
+  let tcea = 0;
   if (bono) {
     // Solo método francés por ahora
     const mapGracia = (tipo: string): "Ninguno" | "Total" | "Parcial" => {
@@ -142,6 +143,9 @@ export default function DetalleBonoPage() {
       duracionMod: calcularDuracionModificada(flujos, tasaPeriodo),
       convexidad: calcularConvexidad(flujos, tasaPeriodo),
     };
+
+    // Calcular TCEA
+    tcea = calcularTCEABono(bono);
   }
 
   if (!firebaseUser)
@@ -390,13 +394,96 @@ export default function DetalleBonoPage() {
               <p className="text-xs text-gray-500 mt-1">
                 Complementa a la duración para medir el riesgo de tasa de
                 interés.
-              </p>
+              </p>{" "}
             </div>
           </div>
           <div className="text-xs text-gray-500 mt-2">
             <span>
               Estos indicadores ayudan a medir el riesgo y sensibilidad del bono
               ante cambios en la tasa de interés.
+            </span>
+          </div>
+        </section>
+
+        {/* Análisis de Costos y Rentabilidad */}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-blue-700">
+              Análisis de Costos y Rentabilidad
+            </h2>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={0} className="cursor-pointer">
+                  <Info className="w-4 h-4 text-blue-400" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                Análisis desde la perspectiva del emisor (TCEA) y del
+                inversionista (TREA).
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {/* TCEA */}
+            <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
+              <div className="flex items-center gap-1 mb-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase">
+                  TCEA (Tasa de Coste Efectivo Anual)
+                </p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0} className="cursor-pointer">
+                      <Info className="w-3 h-3 text-gray-400" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Tasa de coste efectivo anual desde el punto de vista del
+                    emisor. Incluye todas las comisiones y costos asociados a la
+                    emisión del bono.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <p className="text-base text-gray-800 font-mono">
+                {tcea.toFixed(4)}%
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Costo real anual para el emisor considerando todas las
+                comisiones.
+              </p>
+            </div>
+            {/* TREA */}
+            <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
+              <div className="flex items-center gap-1 mb-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase">
+                  TREA (Tasa de Rendimiento Efectivo Anual)
+                </p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0} className="cursor-pointer">
+                      <Info className="w-3 h-3 text-gray-400" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Tasa de rendimiento efectivo anual desde el punto de vista
+                    del inversionista. Incluye todas las comisiones y costos del
+                    bonista.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <p className="text-base text-gray-800 font-mono">
+                {bono.tasaMercado.toFixed(4)}%
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Rendimiento real anual para el inversionista considerando
+                comisiones.
+              </p>
+            </div>
+          </div>
+          <div className="text-xs text-gray-500 mt-2">
+            <span>
+              La TCEA muestra el costo real del financiamiento para el emisor,
+              mientras que la TREA muestra el rendimiento real para el
+              inversionista.
             </span>
           </div>
         </section>

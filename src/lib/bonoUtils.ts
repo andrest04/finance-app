@@ -9,6 +9,7 @@ import {
   limit,
 } from "firebase/firestore";
 import { User } from "firebase/auth";
+import { calcularTCEA, type TCEAParams } from "./tceaCalculator";
 
 export interface BonoData {
   nombre: string;
@@ -303,3 +304,34 @@ export const getBonoFullStats = async (
     throw error;
   }
 };
+
+/**
+ * Calcula la TCEA de un bono desde el punto de vista del emisor
+ */
+export function calcularTCEABono(bono: BonoData): number {
+  try {
+    const mapGracia = (tipo: string): "Ninguno" | "Total" | "Parcial" => {
+      if (tipo === "Sin Gracia" || tipo === "Ninguno") return "Ninguno";
+      if (tipo === "Total") return "Total";
+      if (tipo === "Parcial") return "Parcial";
+      return "Ninguno";
+    };
+
+    const tceaParams: TCEAParams = {
+      valorNominal: bono.valorNominal,
+      tasaAnual: bono.tasaAnual,
+      frecuenciaPago: bono.frecuenciaPago,
+      plazo: bono.plazo,
+      gracia: mapGracia(bono.tipoGracia),
+      numPeriodosGracia: bono.nGracia || 0,
+      comisionEmisor: bono.comisionEmisor,
+      comisionBonista: bono.comisionBonista,
+    };
+
+    const resultado = calcularTCEA(tceaParams);
+    return resultado.tcea;
+  } catch (error) {
+    console.error("Error calculando TCEA:", error);
+    return 0;
+  }
+}
