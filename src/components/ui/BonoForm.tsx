@@ -21,6 +21,12 @@ import { Loader2 } from "lucide-react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
+import { Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 
 const bonoFormSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido"),
@@ -161,7 +167,19 @@ export default function BonoForm() {
     >
       {/* DATOS BÁSICOS */}
       <section className="border border-blue-300 rounded-md p-4 space-y-4 bg-white shadow-sm">
-        <h3 className="text-blue-700 font-semibold text-lg">Datos Básicos</h3>
+        <h3 className="text-blue-700 font-semibold text-lg flex items-center gap-2">
+          Datos Básicos
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0} className="cursor-pointer">
+                <Info className="w-4 h-4 text-blue-400" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              Incluye nombre, valor nominal y moneda del bono.
+            </TooltipContent>
+          </Tooltip>
+        </h3>
         <div className="grid md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label>Nombre del Bono</Label>
@@ -186,7 +204,19 @@ export default function BonoForm() {
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="moneda">Moneda</Label>
+            <Label htmlFor="moneda">
+              Moneda
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={0} className="ml-1 cursor-pointer">
+                    <Info className="w-3 h-3 text-gray-400" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Moneda en la que se emite el bono.
+                </TooltipContent>
+              </Tooltip>
+            </Label>
             <Select
               value={form.watch("moneda")}
               onValueChange={(value) => form.setValue("moneda", value)}
@@ -211,12 +241,35 @@ export default function BonoForm() {
 
       {/* TASA Y FRECUENCIA */}
       <section className="border border-blue-300 rounded-md p-4 space-y-4 bg-white shadow-sm">
-        <h3 className="text-blue-700 font-semibold text-lg">
+        <h3 className="text-blue-700 font-semibold text-lg flex items-center gap-2">
           Tasa y Frecuencia
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0} className="cursor-pointer">
+                <Info className="w-4 h-4 text-blue-400" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              Define el tipo de tasa, valor anual y frecuencia de pagos.
+            </TooltipContent>
+          </Tooltip>
         </h3>
         <div className="grid md:grid-cols-3 gap-4">
           <div className="space-y-2">
-            <Label>Tipo de Tasa</Label>
+            <Label>
+              Tipo de Tasa
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={0} className="ml-1 cursor-pointer">
+                    <Info className="w-3 h-3 text-gray-400" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Nominal: requiere capitalización. Efectiva: ya incluye
+                  capitalización.
+                </TooltipContent>
+              </Tooltip>
+            </Label>
             <Select onValueChange={(val) => form.setValue("tipoTasa", val)}>
               <SelectTrigger>
                 <SelectValue placeholder="Nominal o Efectiva" />
@@ -242,7 +295,19 @@ export default function BonoForm() {
             )}
           </div>
           <div className="space-y-2">
-            <Label>Frecuencia de Pago (f)</Label>
+            <Label>
+              Frecuencia de Pago (f)
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={0} className="ml-1 cursor-pointer">
+                    <Info className="w-3 h-3 text-gray-400" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  ¿Cada cuánto se pagan los intereses?
+                </TooltipContent>
+              </Tooltip>
+            </Label>
             <Select
               onValueChange={(val) => form.setValue("frecuenciaPago", val)}
             >
@@ -266,7 +331,20 @@ export default function BonoForm() {
           </div>
           {tipoTasa === "Nominal" && (
             <div className="space-y-2">
-              <Label>Capitalización</Label>
+              <Label>
+                Capitalización
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0} className="ml-1 cursor-pointer">
+                      <Info className="w-3 h-3 text-gray-400" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Solo para tasa nominal. Indica cada cuánto se capitalizan
+                    los intereses.
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
               <Select
                 onValueChange={(val) =>
                   form.setValue("frecuenciaCapitalizacion", val)
@@ -297,7 +375,19 @@ export default function BonoForm() {
 
       {/* PLAZO Y GRACIA */}
       <section className="border border-blue-300 rounded-md p-4 space-y-4 bg-white shadow-sm">
-        <h3 className="text-blue-700 font-semibold text-lg">Plazo y Gracia</h3>
+        <h3 className="text-blue-700 font-semibold text-lg flex items-center gap-2">
+          Plazo y Gracia
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0} className="cursor-pointer">
+                <Info className="w-4 h-4 text-blue-400" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              Duración del bono y condiciones de gracia al inicio.
+            </TooltipContent>
+          </Tooltip>
+        </h3>
         <div className="grid md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label>Plazo (años)</Label>
@@ -309,7 +399,20 @@ export default function BonoForm() {
             )}
           </div>
           <div className="space-y-2">
-            <Label>Tipo de Gracia</Label>
+            <Label>
+              Tipo de Gracia
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={0} className="ml-1 cursor-pointer">
+                    <Info className="w-3 h-3 text-gray-400" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Sin gracia: no hay periodo de gracia. Parcial: solo se pagan
+                  intereses. Total: no se paga nada.
+                </TooltipContent>
+              </Tooltip>
+            </Label>
             <Select onValueChange={(val) => form.setValue("tipoGracia", val)}>
               <SelectTrigger>
                 <SelectValue placeholder="Tipo de gracia" />
@@ -328,7 +431,19 @@ export default function BonoForm() {
           </div>
           {(tipoGracia === "Parcial" || tipoGracia === "Total") && (
             <div className="space-y-2">
-              <Label>N° Períodos de Gracia</Label>
+              <Label>
+                N° Períodos de Gracia
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0} className="ml-1 cursor-pointer">
+                      <Info className="w-3 h-3 text-gray-400" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Número de periodos iniciales con gracia.
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
               <Input {...form.register("nGracia")} type="number" />
               {form.formState.errors.nGracia && (
                 <p className="text-sm text-red-500">
@@ -351,8 +466,18 @@ export default function BonoForm() {
 
       {/* COSTOS Y TASAS DE DESCUENTO */}
       <section className="border border-blue-300 rounded-md p-4 space-y-4 bg-white shadow-sm">
-        <h3 className="text-blue-700 font-semibold text-lg">
+        <h3 className="text-blue-700 font-semibold text-lg flex items-center gap-2">
           Costos y Descuento
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0} className="cursor-pointer">
+                <Info className="w-4 h-4 text-blue-400" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              Comisiones y tasa de mercado (TREA).
+            </TooltipContent>
+          </Tooltip>
         </h3>
         <div className="grid md:grid-cols-3 gap-4">
           <div className="space-y-2">
