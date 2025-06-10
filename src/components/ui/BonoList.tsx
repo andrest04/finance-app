@@ -93,6 +93,7 @@ export default function BonosList() {
     }
   };
 
+  // Quitar state.lastDoc de las dependencias para evitar bucle
   const fetchBonos = useCallback(
     async (isNewSearch = false) => {
       if (!firebaseUser || !profile) {
@@ -121,8 +122,10 @@ export default function BonosList() {
             limit(BONOS_POR_PAGINA)
           );
         }
-        if (!isNewSearch && state.lastDoc) {
-          q = query(q, startAfter(state.lastDoc));
+        // Usar una variable local para el paginado
+        const lastDoc = isNewSearch ? null : state.lastDoc;
+        if (lastDoc) {
+          q = query(q, startAfter(lastDoc));
         }
         const snapshot = await getDocs(q);
         const bonosData = snapshot.docs.map((doc) => ({
@@ -160,7 +163,7 @@ export default function BonosList() {
         toast.error("Error al cargar los bonos");
       }
     },
-    [firebaseUser, profile, state.lastDoc]
+    [firebaseUser, profile] // Quitar state.lastDoc de dependencias
   );
 
   useEffect(() => {
