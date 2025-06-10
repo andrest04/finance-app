@@ -6,16 +6,12 @@ import ProtectedRoute from "@/components/RouteGuard";
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
 import type { BonoData } from "@/lib/bonoUtils";
-import { useCurrentUser } from "@/lib/useCurrentUser";
-import { Button } from "@/components/ui/button";
-import { Calculator, TrendingUp, AlertTriangle, Info } from "lucide-react";
-import Link from "next/link";
+import { TrendingUp, AlertTriangle, Info } from "lucide-react";
 
 export default function AnalisisBonosPage() {
   const [selectedBonos, setSelectedBonos] = useState<
     (BonoData & { id: string })[]
   >([]);
-  const { profile } = useCurrentUser();
 
   return (
     <ProtectedRoute requiredRole={undefined}>
@@ -112,26 +108,8 @@ export default function AnalisisBonosPage() {
                       tasas de interés.
                     </p>
                   </div>
-                </div>
+                </div>{" "}
               </Card>
-
-              {profile?.role === "inversionista" && (
-                <Card className="p-6 bg-blue-50 border-blue-200">
-                  <h3 className="text-lg font-semibold mb-4 text-blue-800">
-                    Simulador de Inversión
-                  </h3>
-                  <p className="text-sm text-blue-700 mb-4">
-                    Pruebe diferentes escenarios de inversión y vea cómo afectan
-                    a su rendimiento esperado.
-                  </p>
-                  <Link href="/bonos/simulador">
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                      <Calculator className="w-4 h-4 mr-2" />
-                      Ir al Simulador
-                    </Button>
-                  </Link>
-                </Card>
-              )}
             </div>
           </div>
 

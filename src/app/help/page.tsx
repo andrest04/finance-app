@@ -109,12 +109,11 @@ export default function HelpPage() {
               <div className="p-4 bg-green-50 rounded-lg">
                 <h3 className="font-semibold text-green-800 mb-2">
                   Para Inversionistas
-                </h3>
+                </h3>{" "}
                 <ul className="list-disc list-inside text-sm text-gray-700 space-y-2">
                   <li>Explore bonos disponibles en el mercado</li>
                   <li>Compare diferentes opciones de inversión</li>
                   <li>Analice rendimientos y riesgos</li>
-                  <li>Realice simulaciones de inversión</li>
                 </ul>
               </div>
             </div>
