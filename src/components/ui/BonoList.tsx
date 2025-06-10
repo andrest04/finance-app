@@ -297,7 +297,7 @@ export default function BonosList() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => router.push(`/bonos/${bono.id}`)}
+                        onClick={() => router.push(`/bonos/detail/${bono.id}`)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
