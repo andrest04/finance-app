@@ -14,6 +14,13 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
+import {
+  calcularDuracion,
+  calcularDuracionModificada,
+  calcularConvexidad,
+  FlujoBono,
+} from "@/lib/indicadoresBono";
+import { calcularFlujoFrances } from "@/lib/francesMetod";
 
 export default function DetalleBonoPage() {
   const { firebaseUser } = useCurrentUser();
@@ -97,6 +104,38 @@ export default function DetalleBonoPage() {
       }
     });
   }, [firebaseUser, id, router]);
+
+  // --- Indicadores financieros: duración, duración modificada y convexidad ---
+  let indicadores = null;
+  if (bono) {
+    // Solo método francés por ahora
+    const mapGracia = (tipo: string): "Ninguno" | "Total" | "Parcial" => {
+      if (tipo === "Sin Gracia" || tipo === "Ninguno") return "Ninguno";
+      if (tipo === "Total") return "Total";
+      if (tipo === "Parcial") return "Parcial";
+      return "Ninguno";
+    };
+    const flujo = calcularFlujoFrances({
+      valorNominal: bono.valorNominal,
+      tasaAnual: bono.tasaAnual,
+      frecuenciaPago: bono.frecuenciaPago,
+      plazo: bono.plazo,
+      gracia: mapGracia(bono.tipoGracia),
+      numPeriodosGracia: bono.nGracia || 0,
+    });
+    // Convertir a formato FlujoBono (periodo, flujo)
+    const flujos: FlujoBono[] = flujo.map((f) => ({
+      periodo: f.periodo,
+      flujo: f.cuota,
+    }));
+    // Usar tasa de mercado como tasa de descuento (en decimal por periodo)
+    const tasaPeriodo = bono.tasaMercado / 100 / bono.frecuenciaPago;
+    indicadores = {
+      duracion: calcularDuracion(flujos, tasaPeriodo),
+      duracionMod: calcularDuracionModificada(flujos, tasaPeriodo),
+      convexidad: calcularConvexidad(flujos, tasaPeriodo),
+    };
+  }
 
   if (!firebaseUser)
     return <p className="p-6 text-center">Cargando sesión...</p>;
@@ -247,6 +286,113 @@ export default function DetalleBonoPage() {
             </div>
           </section>
         ))}
+
+        {/* Indicadores financieros */}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-blue-700">
+              Indicadores Financieros
+            </h2>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={0} className="cursor-pointer">
+                  <Info className="w-4 h-4 text-blue-400" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                Duración, duración modificada y convexidad del bono calculadas
+                con el método francés y la TREA.
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {/* Duración */}
+            <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
+              <div className="flex items-center gap-1 mb-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase">
+                  Duración
+                </p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0} className="cursor-pointer">
+                      <Info className="w-3 h-3 text-gray-400" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Mide la sensibilidad del precio del bono ante cambios en la
+                    tasa de interés. Una duración mayor implica mayor riesgo
+                    ante subas de tasas.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <p className="text-base text-gray-800 font-mono">
+                {indicadores ? indicadores.duracion.toFixed(4) : "-"} años
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Indica el plazo promedio ponderado en que se recupera la
+                inversión.
+              </p>
+            </div>
+            {/* Duración Modificada */}
+            <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
+              <div className="flex items-center gap-1 mb-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase">
+                  Duración Modificada
+                </p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0} className="cursor-pointer">
+                      <Info className="w-3 h-3 text-gray-400" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Estima el cambio porcentual en el precio del bono ante una
+                    variación de 1% en la tasa de interés.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <p className="text-base text-gray-800 font-mono">
+                {indicadores ? indicadores.duracionMod.toFixed(4) : "-"} años
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Útil para estimar la variación del precio ante cambios en tasas.
+              </p>
+            </div>
+            {/* Convexidad */}
+            <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
+              <div className="flex items-center gap-1 mb-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase">
+                  Convexidad
+                </p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0} className="cursor-pointer">
+                      <Info className="w-3 h-3 text-gray-400" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Mide la curvatura en la relación precio-tasa. Una mayor
+                    convexidad indica menor riesgo ante grandes movimientos de
+                    tasas.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <p className="text-base text-gray-800 font-mono">
+                {indicadores ? indicadores.convexidad.toFixed(4) : "-"}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Complementa a la duración para medir el riesgo de tasa de
+                interés.
+              </p>
+            </div>
+          </div>
+          <div className="text-xs text-gray-500 mt-2">
+            <span>
+              Estos indicadores ayudan a medir el riesgo y sensibilidad del bono
+              ante cambios en la tasa de interés.
+            </span>
+          </div>
+        </section>
       </main>
     </ProtectedRoute>
   );
