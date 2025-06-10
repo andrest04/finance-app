@@ -18,7 +18,6 @@ import {
   getRecentActivity,
   type BonoData,
 } from "@/lib/bonoUtils";
-import { formatDate } from "@/lib/utils";
 
 export default function InversionistaDashboard() {
   const { profile, firebaseUser } = useCurrentUser();
@@ -177,9 +176,15 @@ export default function InversionistaDashboard() {
                         {bono.emisorNombre || "Emisor no especificado"}
                       </p>
                     </div>
-                    <p className="text-sm text-gray-500">
-                      {formatDate(bono.creadoEn)}
-                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => router.push(`/bonos/detail/${bono.id}`)}
+                        className="text-gray-600 hover:text-gray-700"
+                        type="button"
+                      >
+                        Ver detalles
+                      </button>
+                    </div>
                   </div>
                 ))
               ) : (
