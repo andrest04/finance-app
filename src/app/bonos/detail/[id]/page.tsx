@@ -23,7 +23,7 @@ import {
 import { calcularFlujoFrances } from "@/lib/francesMetod";
 
 export default function DetalleBonoPage() {
-  const { firebaseUser } = useCurrentUser();
+  const { firebaseUser, profile } = useCurrentUser();
   const { id } = useParams();
   const router = useRouter();
   const [bono, setBono] = useState<BonoData | null>(null);
@@ -86,14 +86,21 @@ export default function DetalleBonoPage() {
     `${parseInt(String(value))}${suffix}`;
 
   useEffect(() => {
-    if (!firebaseUser || !id) return;
+    if (!firebaseUser || !id || !profile) return;
 
     const ref = doc(db, "bonds", String(id));
     getDoc(ref).then((snap) => {
       if (snap.exists()) {
         const data = snap.data() as BonoData;
-        if (data.userId === firebaseUser.uid) {
-          setBono(data);
+        if (profile.role === "emisor") {
+          if (data.userId === firebaseUser.uid) {
+            setBono(data);
+          } else {
+            alert("No tienes permiso para ver este bono.");
+            router.push("/bonos/list");
+          }
+        } else if (profile.role === "inversionista") {
+          setBono(data); // El inversionista puede ver cualquier bono
         } else {
           alert("No tienes permiso para ver este bono.");
           router.push("/bonos/list");
@@ -103,7 +110,7 @@ export default function DetalleBonoPage() {
         router.push("/bonos/list");
       }
     });
-  }, [firebaseUser, id, router]);
+  }, [firebaseUser, id, router, profile]);
 
   // --- Indicadores financieros: duración, duración modificada y convexidad ---
   let indicadores = null;
