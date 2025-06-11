@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import ProtectedRoute from "@/components/RouteGuard";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { Card } from "@/components/ui/card";
+import ProximosVencimientos from "@/components/ui/ProximosVencimientos";
 import { useRouter } from "next/navigation";
 import {
   PlusCircle,
@@ -25,9 +26,17 @@ export default function EmisorDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<{
     totalBonos: number;
-    tasaPromedio: number;
     proximoVencimiento: string;
     bonosActivos: number;
+    valoresPorMoneda: Record<string, number>;
+    proximosVencimientos: {
+      fecha: string;
+      fechaFormatted: string;
+      nombre: string;
+      valor: number;
+      moneda: string;
+      diasRestantes: number;
+    }[];
   } | null>(null);
   const [recentActivity, setRecentActivity] = useState<
     (BonoData & { id: string })[]
@@ -76,7 +85,6 @@ export default function EmisorDashboard() {
       color: "bg-purple-500",
     },
   ];
-
   const portfolioStats = [
     {
       title: "Bonos Activos",
@@ -85,13 +93,27 @@ export default function EmisorDashboard() {
       color: "text-blue-600",
     },
     {
-      title: "Tasa Promedio",
-      value: stats ? `${stats.tasaPromedio}%` : "-",
+      title: "Valor Total Emitido",
+      value:
+        stats && Object.keys(stats.valoresPorMoneda).length > 0
+          ? Object.entries(stats.valoresPorMoneda)
+              .map(
+                ([moneda, valor]) =>
+                  `${
+                    moneda === "PEN"
+                      ? "S/"
+                      : moneda === "USD"
+                      ? "$"
+                      : moneda + " "
+                  }${valor.toLocaleString()}`
+              )
+              .join(" | ")
+          : "-",
       icon: Percent,
       color: "text-green-600",
     },
     {
-      title: "Próximo Pago",
+      title: "Próximo Vencimiento",
       value: stats ? stats.proximoVencimiento : "-",
       icon: Calendar,
       color: "text-purple-600",
@@ -122,7 +144,6 @@ export default function EmisorDashboard() {
               Gestiona tus bonos corporativos y monitorea su rendimiento
             </p>
           </div>
-
           {/* Quick Actions */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {quickActions.map((action) => (
@@ -140,8 +161,7 @@ export default function EmisorDashboard() {
                 <p className="text-gray-600">{action.description}</p>
               </Card>
             ))}
-          </div>
-
+          </div>{" "}
           {/* Portfolio Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {portfolioStats.map((stat) => (
@@ -158,7 +178,13 @@ export default function EmisorDashboard() {
               </Card>
             ))}
           </div>
-
+          {/* Próximos Vencimientos */}
+          {stats && stats.proximosVencimientos && (
+            <ProximosVencimientos
+              vencimientos={stats.proximosVencimientos}
+              tipoUsuario="emisor"
+            />
+          )}
           {/* Recent Activity */}
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">Actividad Reciente</h2>

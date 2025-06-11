@@ -41,6 +41,7 @@ export default function AnalisisBonosPage() {
     consejos: false,
     conceptos: false,
     calculadora: false,
+    valoracion: false, // Nueva tarjeta de valoración
     compendio: false,
     practicas: false,
   });
@@ -567,6 +568,114 @@ export default function AnalisisBonosPage() {
                     <p className="text-xs text-emerald-600">
                       * Valores aproximados para referencia
                     </p>
+                  </div>
+                )}
+              </Card>
+              {/* Valoración y Precio del Bono */}
+              <Card className="p-6 bg-gradient-to-br from-cyan-50 to-blue-50 border-cyan-200 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
+                <div
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => toggleCard("valoracion")}
+                >
+                  <div className="flex items-center gap-3">
+                    <TrendingUp className="w-5 h-5 text-cyan-600" />
+                    <h3 className="text-lg font-semibold text-cyan-900">
+                      💰 Valoración y Precio
+                    </h3>
+                  </div>
+                  {expandedCards.valoracion ? (
+                    <ChevronUp className="w-5 h-5 text-cyan-600" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-cyan-600" />
+                  )}
+                </div>
+                {expandedCards.valoracion && (
+                  <div className="space-y-4 mt-4">
+                    <div>
+                      <h4 className="font-medium text-cyan-800 mb-2">
+                        Precio del Bono
+                      </h4>
+                      <div className="bg-white p-3 rounded-lg border border-cyan-200">
+                        <p className="text-sm text-cyan-700 mb-2">
+                          <strong>Fórmula:</strong> Precio = Σ[FC_t / (1+r)^t]
+                        </p>
+                        <p className="text-xs text-cyan-600">
+                          FC_t: Flujo de caja en período t, r: Tasa de descuento
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium text-cyan-800 mb-2">
+                        Tipos de Obligaciones
+                      </h4>
+                      <div className="space-y-2">
+                        <div className="bg-green-50 p-3 rounded border border-green-200">
+                          <p className="text-sm font-semibold text-green-800">
+                            Premium (Prima)
+                          </p>
+                          <p className="text-xs text-green-700">
+                            Precio mayor a Valor Nominal. Tasa cupón mayor a
+                            Tasa mercado
+                          </p>
+                        </div>
+                        <div className="bg-orange-50 p-3 rounded border border-orange-200">
+                          <p className="text-sm font-semibold text-orange-800">
+                            Descuento
+                          </p>
+                          <p className="text-xs text-orange-700">
+                            Precio menor a Valor Nominal. Tasa cupón menor a
+                            Tasa mercado
+                          </p>
+                        </div>
+                        <div className="bg-blue-50 p-3 rounded border border-blue-200">
+                          <p className="text-sm font-semibold text-blue-800">
+                            A la Par
+                          </p>
+                          <p className="text-xs text-blue-700">
+                            Precio igual a Valor Nominal. Tasa cupón igual a
+                            Tasa mercado
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium text-cyan-800 mb-2">
+                        Convexidad Avanzada
+                      </h4>
+                      <div className="bg-white p-3 rounded-lg border border-cyan-200">
+                        <p className="text-sm text-cyan-700 mb-2">
+                          <strong>Definición:</strong> Mide la curvatura en la
+                          relación precio-rendimiento
+                        </p>
+                        <div className="text-xs text-cyan-600 space-y-1">
+                          <div>• Mayor convexidad = Menor riesgo de precio</div>
+                          <div>
+                            • Mejora la aproximación de duración modificada
+                          </div>
+                          <div>
+                            • Especialmente útil para grandes cambios de tasa
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium text-cyan-800 mb-2">
+                        Rendimiento al Vencimiento (YTM)
+                      </h4>
+                      <div className="bg-white p-3 rounded-lg border border-cyan-200">
+                        <p className="text-sm text-cyan-700 mb-2">
+                          <strong>Concepto:</strong> Tasa que iguala el precio
+                          actual con el valor presente de flujos
+                        </p>
+                        <p className="text-xs text-cyan-600">
+                          Se calcula usando métodos numéricos como
+                          Newton-Raphson
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </Card>

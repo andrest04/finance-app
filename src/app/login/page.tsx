@@ -54,15 +54,20 @@ export default function LoginPage() {
   };
   const handleGoogleLogin = async () => {
     try {
+      setError(""); // Limpiar errores previos
       console.log("Iniciando login con Google...");
+
       const result = await signInWithPopup(auth, googleProvider);
       console.log("Login con Google exitoso:", result.user.displayName);
+
       await saveUserData(result.user);
       const userData = await getUserData(result.user.uid);
+
       if (!userData?.role) {
         router.push("/select-role");
         return;
       }
+
       if (userData.role === "emisor") {
         router.push("/emisor/dashboard");
       } else {
@@ -70,9 +75,26 @@ export default function LoginPage() {
       }
     } catch (error: unknown) {
       console.error("Error en login con Google:", error);
-      // Mostrar error más detallado para depuración
+
+      // Manejo específico de errores de popup
       if (error instanceof Error) {
-        setError(`${getErrorMessage(error)} (${error.name}: ${error.message})`);
+        const errorCode = error.message.split("(")[1]?.split(")")[0];
+
+        if (errorCode === "auth/popup-closed-by-user") {
+          setError(
+            "La ventana de inicio de sesión fue cerrada. Haz clic en 'Iniciar sesión con Google' para intentar de nuevo."
+          );
+        } else if (errorCode === "auth/popup-blocked") {
+          setError(
+            "Tu navegador bloqueó la ventana emergente. Por favor, permite las ventanas emergentes para este sitio y vuelve a intentar."
+          );
+        } else if (errorCode === "auth/cancelled-popup-request") {
+          setError(
+            "Se canceló la solicitud de inicio de sesión. Puedes intentar de nuevo."
+          );
+        } else {
+          setError(getErrorMessage(error));
+        }
       } else {
         setError(getErrorMessage(error));
       }

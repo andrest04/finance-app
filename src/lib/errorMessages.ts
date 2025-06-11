@@ -20,11 +20,11 @@ export const getErrorMessage = (error: unknown): string => {
       case "auth/too-many-requests":
         return "Demasiados intentos fallidos. Por favor, intenta más tarde.";
       case "auth/popup-closed-by-user":
-        return "La ventana de inicio de sesión fue cerrada. Por favor, intenta de nuevo.";
+        return "La ventana de inicio de sesión fue cerrada antes de completar la autenticación. Haz clic en el botón de Google para intentar de nuevo.";
       case "auth/popup-blocked":
-        return "La ventana de inicio de sesión fue bloqueada. Por favor, permite las ventanas emergentes.";
+        return "Tu navegador bloqueó la ventana emergente. Por favor, permite las ventanas emergentes para este sitio en la configuración de tu navegador y vuelve a intentar.";
       case "auth/cancelled-popup-request":
-        return "Se canceló la solicitud de inicio de sesión.";
+        return "Se canceló la solicitud de inicio de sesión. Si sigues teniendo problemas, intenta refrescar la página.";
       case "auth/account-exists-with-different-credential":
         return "Ya existe una cuenta con este correo electrónico usando otro método de inicio de sesión.";
       default:

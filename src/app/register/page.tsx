@@ -58,7 +58,9 @@ export default function RegisterPage() {
   };
   const handleGoogleRegister = async () => {
     try {
+      setError(""); // Limpiar errores previos
       console.log("Iniciando registro con Google...");
+
       const result = await signInWithPopup(auth, googleProvider);
       console.log("Registro con Google exitoso:", result.user.displayName);
 
@@ -120,8 +122,26 @@ export default function RegisterPage() {
       }
     } catch (error: unknown) {
       console.error("Error en registro con Google:", error);
+
+      // Manejo específico de errores de popup
       if (error instanceof Error) {
-        setError(`${getErrorMessage(error)} (${error.name}: ${error.message})`);
+        const errorCode = error.message.split("(")[1]?.split(")")[0];
+
+        if (errorCode === "auth/popup-closed-by-user") {
+          setError(
+            "La ventana de registro fue cerrada. Haz clic en 'Registrarse con Google' para intentar de nuevo."
+          );
+        } else if (errorCode === "auth/popup-blocked") {
+          setError(
+            "Tu navegador bloqueó la ventana emergente. Por favor, permite las ventanas emergentes para este sitio y vuelve a intentar."
+          );
+        } else if (errorCode === "auth/cancelled-popup-request") {
+          setError(
+            "Se canceló la solicitud de registro. Puedes intentar de nuevo."
+          );
+        } else {
+          setError(getErrorMessage(error));
+        }
       } else {
         setError(getErrorMessage(error));
       }
