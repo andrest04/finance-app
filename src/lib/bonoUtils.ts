@@ -42,9 +42,17 @@ export interface BonoData {
 
 export interface BonoStats {
   totalBonos: number;
-  tasaPromedio: number;
   proximoVencimiento: string;
   bonosActivos: number;
+  valoresPorMoneda: Record<string, number>;
+  proximosVencimientos: {
+    fecha: string;
+    fechaFormatted: string;
+    nombre: string;
+    valor: number;
+    moneda: string;
+    diasRestantes: number;
+  }[];
 }
 
 export interface BonoFullStats {
@@ -53,13 +61,20 @@ export interface BonoFullStats {
   bonosVencidos: number;
   valorNominalTotal: number;
   valorNominalVencido: number;
-  tasaPromedio: number;
   tasaMaxima: number;
   tasaMinima: number;
   proximoVencimiento: string;
   montosPorMoneda: Record<string, number>;
   evolucionMensual: { mes: string; monto: number }[];
   evolucionMensualPorMoneda: Record<string, { mes: string; monto: number }[]>;
+  proximosVencimientos: {
+    fecha: string;
+    fechaFormatted: string;
+    nombre: string;
+    valor: number;
+    moneda: string;
+    diasRestantes: number;
+  }[];
 }
 
 export const saveBono = async (user: User, bonoData: BonoData) => {
@@ -103,16 +118,16 @@ export const getBonoStats = async (userId?: string): Promise<BonoStats> => {
           ? new Date(b.fechaEmision).getTime()
           : b.fechaEmision.seconds * 1000;
       return fechaB - fechaA;
-    });
-
-    // Calcular estadísticas
+    }); // Calcular estadísticas
     const totalBonos = bonos.length;
-    const tasaPromedio =
-      bonos.length > 0
-        ? bonos.reduce((acc, bono) => acc + bono.tasaAnual, 0) / bonos.length
-        : 0;
 
-    // Encontrar el próximo vencimiento
+    // Calcular valores por moneda
+    const valoresPorMoneda: Record<string, number> = {};
+    bonos.forEach((bono) => {
+      const moneda = bono.moneda;
+      valoresPorMoneda[moneda] =
+        (valoresPorMoneda[moneda] || 0) + bono.valorNominal;
+    }); // Encontrar los próximos vencimientos (hasta 3)
     const hoy = new Date();
     const bonosConVencimiento = bonos.map((bono) => {
       const fechaEmision =
@@ -127,30 +142,48 @@ export const getBonoStats = async (userId?: string): Promise<BonoStats> => {
       };
     });
 
-    const proximoVencimiento = bonosConVencimiento
+    const proximosVencimientos = bonosConVencimiento
       .filter((bono) => bono.fechaVencimiento > hoy)
       .sort(
         (a, b) => a.fechaVencimiento.getTime() - b.fechaVencimiento.getTime()
-      )[0];
-
-    // Calcular días hasta el próximo vencimiento
-    const diasHastaVencimiento = proximoVencimiento
-      ? Math.ceil(
-          (proximoVencimiento.fechaVencimiento.getTime() - hoy.getTime()) /
+      )
+      .slice(0, 3) // Tomar los primeros 3
+      .map((bono) => {
+        const diasRestantes = Math.ceil(
+          (bono.fechaVencimiento.getTime() - hoy.getTime()) /
             (1000 * 60 * 60 * 24)
-        )
-      : 0;
+        );
+        const fechaFormatted = bono.fechaVencimiento.toLocaleDateString(
+          "es-ES",
+          {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          }
+        );
+
+        return {
+          fecha: bono.fechaVencimiento.toISOString(),
+          fechaFormatted,
+          nombre: bono.nombre,
+          valor: bono.valorNominal,
+          moneda: bono.moneda,
+          diasRestantes,
+        };
+      });
+
+    const proximoVencimiento = proximosVencimientos[0];
 
     return {
       totalBonos,
-      tasaPromedio: Number(tasaPromedio.toFixed(2)),
-      proximoVencimiento:
-        diasHastaVencimiento > 0
-          ? `${diasHastaVencimiento} días`
-          : "No hay vencimientos próximos",
+      proximoVencimiento: proximoVencimiento
+        ? `${proximoVencimiento.fechaFormatted} (${proximoVencimiento.diasRestantes} días)`
+        : "No hay vencimientos próximos",
       bonosActivos: bonosConVencimiento.filter(
         (bono) => bono.fechaVencimiento > hoy
       ).length,
+      valoresPorMoneda,
+      proximosVencimientos,
     };
   } catch (error) {
     console.error("Error getting bono stats:", error);
@@ -230,29 +263,42 @@ export const getBonoFullStats = async (
     const valorNominalVencido = bonosVencidos.reduce(
       (acc, b) => acc + b.valorNominal,
       0
-    );
-
-    // Tasas
+    ); // Tasas
     const tasas = bonos.map((b) => b.tasaAnual);
-    const tasaPromedio =
-      tasas.length > 0 ? tasas.reduce((a, b) => a + b, 0) / tasas.length : 0;
     const tasaMaxima = tasas.length > 0 ? Math.max(...tasas) : 0;
-    const tasaMinima = tasas.length > 0 ? Math.min(...tasas) : 0;
-
-    // Próximo vencimiento
-    const proximo = bonosActivos.sort(
-      (a, b) => a.fechaVencimiento.getTime() - b.fechaVencimiento.getTime()
-    )[0];
-    const diasHastaProximo = proximo
-      ? Math.ceil(
-          (proximo.fechaVencimiento.getTime() - hoy.getTime()) /
+    const tasaMinima = tasas.length > 0 ? Math.min(...tasas) : 0; // Próximos vencimientos (hasta 3)
+    const proximosVencimientos = bonosActivos
+      .sort(
+        (a, b) => a.fechaVencimiento.getTime() - b.fechaVencimiento.getTime()
+      )
+      .slice(0, 3)
+      .map((bono) => {
+        const diasRestantes = Math.ceil(
+          (bono.fechaVencimiento.getTime() - hoy.getTime()) /
             (1000 * 60 * 60 * 24)
-        )
-      : 0;
+        );
+        const fechaFormatted = bono.fechaVencimiento.toLocaleDateString(
+          "es-ES",
+          {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          }
+        );
+
+        return {
+          fecha: bono.fechaVencimiento.toISOString(),
+          fechaFormatted,
+          nombre: bono.nombre,
+          valor: bono.valorNominal,
+          moneda: bono.moneda,
+          diasRestantes,
+        };
+      });
+
+    const proximo = proximosVencimientos[0];
     const proximoVencimiento = proximo
-      ? diasHastaProximo > 0
-        ? `${diasHastaProximo} días`
-        : "Hoy"
+      ? `${proximo.fechaFormatted} (${proximo.diasRestantes} días)`
       : "No hay vencimientos próximos";
 
     // Montos por moneda
@@ -293,20 +339,19 @@ export const getBonoFullStats = async (
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([mes, monto]) => ({ mes, monto }));
     });
-
     return {
       totalBonos: bonos.length,
       bonosActivos: bonosActivos.length,
       bonosVencidos: bonosVencidos.length,
       valorNominalTotal,
       valorNominalVencido,
-      tasaPromedio: Number(tasaPromedio.toFixed(2)),
       tasaMaxima: Number(tasaMaxima.toFixed(2)),
       tasaMinima: Number(tasaMinima.toFixed(2)),
       proximoVencimiento,
       montosPorMoneda,
       evolucionMensual,
       evolucionMensualPorMoneda,
+      proximosVencimientos,
     };
   } catch (error) {
     console.error("Error getting bono full stats:", error);
