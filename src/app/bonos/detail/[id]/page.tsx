@@ -429,19 +429,22 @@ export default function DetalleBonoPage() {
                 <span tabIndex={0} className="cursor-pointer">
                   <Info className="w-4 h-4 text-blue-400" />
                 </span>
-              </TooltipTrigger>
+              </TooltipTrigger>{" "}
               <TooltipContent>
-                Precio actual del bono calculado descontando los flujos futuros
-                a la tasa de mercado. Incluye análisis de prima/descuento.
+                Precio máximo que estaría dispuesto a pagar el mercado por este
+                título valor, calculado descontando los flujos futuros a la tasa
+                de mercado. Incluye análisis de prima/descuento respecto al
+                valor nominal.
               </TooltipContent>
             </Tooltip>
           </div>
           <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
-            {/* Precio Actual */}
+            {" "}
+            {/* Precio Máximo de Mercado */}
             <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
               <div className="flex items-center gap-1 mb-1">
                 <p className="text-xs font-semibold text-gray-500 uppercase">
-                  Precio Actual
+                  Precio Máximo de Mercado
                 </p>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -450,8 +453,10 @@ export default function DetalleBonoPage() {
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    Valor presente de todos los flujos futuros del bono
-                    descontados a la tasa de mercado actual.
+                    Precio máximo que estaría dispuesto a pagar el mercado por
+                    este título valor. Se calcula como el valor presente de
+                    todos los flujos futuros del bono descontados a la tasa de
+                    mercado actual.
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -464,10 +469,9 @@ export default function DetalleBonoPage() {
                   : "-"}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                Precio de mercado calculado
+                Valor teórico de mercado del bono
               </p>
             </div>
-
             {/* Valor Nominal */}
             <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
               <div className="flex items-center gap-1 mb-1">
@@ -495,7 +499,6 @@ export default function DetalleBonoPage() {
               </p>
               <p className="text-xs text-gray-500 mt-1">Valor al vencimiento</p>
             </div>
-
             {/* Prima/Descuento */}
             <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
               <div className="flex items-center gap-1 mb-1">
@@ -539,7 +542,6 @@ export default function DetalleBonoPage() {
                   : "A la Par"}
               </p>
             </div>
-
             {/* Porcentaje Prima */}
             <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
               <div className="flex items-center gap-1 mb-1">
