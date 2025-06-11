@@ -4,14 +4,26 @@ import {
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
+  UserCredential,
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { saveUserData, getUserData } from "@/lib/userUtils";
 import { getErrorMessage } from "@/lib/errorMessages";
 import { useRouter } from "next/navigation";
 
+// Importar el tipo UserData desde userUtils para consistencia
+type UserData = {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  createdAt: Date;
+  lastLogin: Date;
+  provider: string;
+  role: string;
+};
+
 interface UseGoogleAuthOptions {
-  onSuccess?: (userData: any) => void;
+  onSuccess?: (userData: UserData | null) => void;
   onError?: (error: string) => void;
   redirectOnSuccess?: boolean;
 }
@@ -62,8 +74,7 @@ export const useGoogleAuth = (options: UseGoogleAuthOptions = {}) => {
       setLoading(false);
     }
   };
-
-  const handleAuthSuccess = async (result: any) => {
+  const handleAuthSuccess = async (result: UserCredential) => {
     console.log("Autenticación exitosa:", result.user.displayName);
 
     await saveUserData(result.user);

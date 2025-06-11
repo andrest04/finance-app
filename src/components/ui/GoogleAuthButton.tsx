@@ -6,12 +6,13 @@ import {
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
+  UserCredential,
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { getErrorMessage } from "@/lib/errorMessages";
 
 interface GoogleAuthButtonProps {
-  onSuccess: (result: any) => void;
+  onSuccess: (result: UserCredential) => void;
   onError: (error: string) => void;
   buttonText?: string;
   className?: string;
