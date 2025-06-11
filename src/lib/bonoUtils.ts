@@ -15,6 +15,10 @@ import {
   type TCEAParams,
   type TREAParams,
 } from "./tceaCalculator";
+import {
+  calcularPrecioBonoDesdeBono,
+  type PrecioBonoResult,
+} from "./precioBonoCalculator";
 
 export interface BonoData {
   nombre: string;
@@ -370,4 +374,14 @@ export function calcularTREABono(bono: BonoData): number {
     console.error("Error calculando TREA:", error);
     return 0;
   }
+}
+
+/**
+ * Calcula el precio de un bono usando la valoración de mercado
+ */
+export function calcularPrecioBonoWrapper(
+  bono: BonoData,
+  tasaDescuento?: number
+): PrecioBonoResult {
+  return calcularPrecioBonoDesdeBono(bono, tasaDescuento);
 }
