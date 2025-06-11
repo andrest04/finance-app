@@ -32,7 +32,6 @@ import {
   List,
   Calendar,
   DollarSign,
-  Percent,
   Building,
   ChevronDown,
   RefreshCw,
@@ -73,8 +72,7 @@ interface SortState {
 
 interface BonoStats {
   total: number;
-  valorNominalTotal: number;
-  tasaPromedio: number;
+  valoresPorMoneda: Record<string, number>;
   proximoVencimiento: string;
 }
 
@@ -217,7 +215,6 @@ const BonoCard = React.memo(
               )}
             </div>
           </div>
-
           {/* Key Metrics */}
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
@@ -233,7 +230,6 @@ const BonoCard = React.memo(
               </p>
             </div>
           </div>
-
           {/* Additional Info */}
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
@@ -254,7 +250,7 @@ const BonoCard = React.memo(
               <p className="text-gray-500">Emisión</p>
               <p className="font-semibold">{formatDate(bono.fechaEmision)}</p>
             </div>
-          </div>
+          </div>{" "}
         </div>
         {/* Footer */}
         <div className="px-6 py-3 bg-gray-50 border-t">
@@ -271,7 +267,7 @@ const BonoCard = React.memo(
               Ver detalles →
             </Button>
           </div>
-        </div>{" "}
+        </div>
       </Card>
     );
   }
@@ -362,11 +358,11 @@ const BonoTableRow = React.memo(
                   ) : (
                     <Trash2 className="h-4 w-4" />
                   )}
-                </Button>
+                </Button>{" "}
               </>
             )}
           </div>
-        </td>{" "}
+        </td>
       </tr>
     );
   }
@@ -414,25 +410,25 @@ export default function BonoListEnhanced() {
   const [showFilters, setShowFilters] = useState(false);
   const [localSearchTerm, setLocalSearchTerm] = useState("");
 
-  const router = useRouter();
-  // Optimización: Lazy loading de estadísticas
+  const router = useRouter(); // Optimización: Lazy loading de estadísticas
   const stats = useMemo((): BonoStats => {
     if (state.bonos.length === 0) {
       return {
         total: 0,
-        valorNominalTotal: 0,
-        tasaPromedio: 0,
+        valoresPorMoneda: {},
         proximoVencimiento: "N/A",
       };
     }
 
     const total = state.bonos.length;
-    const valorNominalTotal = state.bonos.reduce(
-      (sum, bono) => sum + bono.valorNominal,
-      0
-    );
-    const tasaPromedio =
-      state.bonos.reduce((sum, bono) => sum + bono.tasaAnual, 0) / total;
+
+    // Calcular valores por moneda
+    const valoresPorMoneda: Record<string, number> = {};
+    state.bonos.forEach((bono) => {
+      const moneda = bono.moneda;
+      valoresPorMoneda[moneda] =
+        (valoresPorMoneda[moneda] || 0) + bono.valorNominal;
+    });
 
     // Find next maturity
     const now = new Date();
@@ -455,8 +451,7 @@ export default function BonoListEnhanced() {
 
     return {
       total,
-      valorNominalTotal,
-      tasaPromedio: Math.round(tasaPromedio * 100) / 100,
+      valoresPorMoneda,
       proximoVencimiento,
     };
   }, [state.bonos]);
@@ -815,11 +810,10 @@ export default function BonoListEnhanced() {
                 <Plus className="w-4 h-4" /> Nuevo Bono
               </Button>
             )}
-          </div>
+          </div>{" "}
         </div>
-
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Card className="p-4 bg-white">
             <div className="flex items-center justify-between">
               <div>
@@ -831,31 +825,32 @@ export default function BonoListEnhanced() {
               <BarChart3 className="w-8 h-8 text-blue-600" />
             </div>
           </Card>
+
           <Card className="p-4 bg-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Valor Total</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {formatCurrency(stats.valorNominalTotal, "PEN").replace(
-                    "S/",
-                    "S/"
+                <p className="text-sm text-gray-600 mb-1">Valores por Moneda</p>
+                <div className="space-y-1">
+                  {Object.keys(stats.valoresPorMoneda).length === 0 ? (
+                    <p className="text-lg font-bold text-gray-500">Sin bonos</p>
+                  ) : (
+                    Object.entries(stats.valoresPorMoneda).map(
+                      ([moneda, valor]) => (
+                        <p
+                          key={moneda}
+                          className="text-sm font-bold text-green-600"
+                        >
+                          {formatCurrency(valor, moneda)}
+                        </p>
+                      )
+                    )
                   )}
-                </p>
+                </div>
               </div>
               <DollarSign className="w-8 h-8 text-green-600" />
             </div>
           </Card>
-          <Card className="p-4 bg-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Tasa Promedio</p>
-                <p className="text-2xl font-bold text-purple-600">
-                  {stats.tasaPromedio}%
-                </p>
-              </div>
-              <Percent className="w-8 h-8 text-purple-600" />
-            </div>
-          </Card>
+
           <Card className="p-4 bg-white">
             <div className="flex items-center justify-between">
               <div>
@@ -875,7 +870,8 @@ export default function BonoListEnhanced() {
       <div className="flex flex-col lg:flex-row gap-4">
         {/* Search */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />{" "}
+          {" "}
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
           <Input
             placeholder="Buscar por nombre o emisor..."
             value={localSearchTerm}
@@ -924,8 +920,8 @@ export default function BonoListEnhanced() {
             className="flex items-center gap-2 h-12"
           >
             <Download className="w-4 h-4" />
-            PDF
-          </Button>{" "}
+            PDF{" "}
+          </Button>
         </div>
       </div>
       {/* Indicador sutil de loading durante búsqueda/filtrado */}
@@ -1108,7 +1104,8 @@ export default function BonoListEnhanced() {
           {/* Sort Controls */}
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-600">
-              Mostrando {filteredAndSortedBonos.length} de {state.bonos.length}{" "}
+              {" "}
+              Mostrando {filteredAndSortedBonos.length} de {state.bonos.length}
               bonos
             </p>
             <div className="flex items-center gap-2">
@@ -1155,8 +1152,8 @@ export default function BonoListEnhanced() {
                     <SortDesc className="w-3 h-3" />
                   ))}
               </Button>
-            </div>
-          </div>{" "}
+            </div>{" "}
+          </div>
           {/* Bonds Grid/List */}
           {state.loading && state.initialized ? (
             /* Skeleton loading durante búsqueda/filtrado */
@@ -1232,12 +1229,12 @@ export default function BonoListEnhanced() {
                       </th>
                       <th className="text-center p-4 font-semibold text-gray-700">
                         Plazo
-                      </th>
+                      </th>{" "}
                       <th className="text-center p-4 font-semibold text-gray-700">
                         Acciones
                       </th>
                     </tr>
-                  </thead>{" "}
+                  </thead>
                   <tbody>
                     {filteredAndSortedBonos.map((bono) => (
                       <BonoTableRow
