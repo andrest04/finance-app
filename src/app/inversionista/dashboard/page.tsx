@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import ProtectedRoute from "@/components/RouteGuard";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { Card } from "@/components/ui/card";
+import ProximosVencimientos from "@/components/ui/ProximosVencimientos";
 import { useRouter } from "next/navigation";
 import {
   BarChart2,
@@ -24,9 +25,17 @@ export default function InversionistaDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<{
     totalBonos: number;
-    tasaPromedio: number;
     proximoVencimiento: string;
     bonosActivos: number;
+    valoresPorMoneda: Record<string, number>;
+    proximosVencimientos: {
+      fecha: string;
+      fechaFormatted: string;
+      nombre: string;
+      valor: number;
+      moneda: string;
+      diasRestantes: number;
+    }[];
   } | null>(null);
   const [recentActivity, setRecentActivity] = useState<
     (BonoData & { id: string })[]
@@ -75,11 +84,24 @@ export default function InversionistaDashboard() {
       color: "bg-purple-500",
     },
   ];
-
   const marketStats = [
     {
-      title: "Tasa Promedio",
-      value: stats ? `${stats.tasaPromedio}%` : "-",
+      title: "Valor Total Disponible",
+      value:
+        stats && Object.keys(stats.valoresPorMoneda).length > 0
+          ? Object.entries(stats.valoresPorMoneda)
+              .map(
+                ([moneda, valor]) =>
+                  `${
+                    moneda === "PEN"
+                      ? "S/"
+                      : moneda === "USD"
+                      ? "$"
+                      : moneda + " "
+                  }${valor.toLocaleString()}`
+              )
+              .join(" | ")
+          : "-",
       icon: Percent,
       color: "text-green-600",
     },
@@ -165,7 +187,14 @@ export default function InversionistaDashboard() {
                 </div>
               </Card>
             ))}
-          </div>{" "}
+          </div>
+          {/* Próximos Vencimientos */}
+          {stats && stats.proximosVencimientos && (
+            <ProximosVencimientos
+              vencimientos={stats.proximosVencimientos}
+              tipoUsuario="inversionista"
+            />
+          )}
           {/* Recent Activity */}
           <Card className="p-4 md:p-6">
             <h2 className="text-lg md:text-xl font-semibold mb-4">
