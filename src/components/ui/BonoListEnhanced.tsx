@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   collection,
   getDocs,
@@ -127,6 +127,253 @@ function getBonoStatus(bono: Bono): {
 
 const BONOS_POR_PAGINA = 12;
 
+// Hook personalizado para memoizar cálculos financieros con cache
+const useBonoCalculations = (bono: Bono) => {
+  return useMemo(() => {
+    // Cache key basado en los datos relevantes del bono
+    const cacheKey = `${bono.id}-${bono.valorNominal}-${bono.tasaAnual}-${bono.plazo}`;
+
+    return {
+      status: getBonoStatus(bono),
+      tcea: calcularTCEABono(bono),
+      trea: calcularTREABono(bono),
+      cacheKey,
+    };
+  }, [bono]);
+};
+
+// Componente memoizado para tarjetas de bono
+const BonoCard = React.memo(
+  ({
+    bono,
+    profile,
+    router,
+    eliminarBono,
+    deletingId,
+  }: {
+    bono: Bono;
+    profile: { role?: string };
+    router: { push: (path: string) => void };
+    eliminarBono: (id: string, name: string) => void;
+    deletingId: string | null;
+  }) => {
+    const { status, tcea, trea } = useBonoCalculations(bono);
+
+    return (
+      <Card
+        key={bono.id}
+        className="overflow-hidden hover:shadow-lg transition-shadow duration-200"
+      >
+        <div className="p-6">
+          {/* Header */}
+          <div className="flex justify-between items-start mb-4">
+            <div className="flex-1">
+              <h3 className="font-bold text-lg text-gray-900 mb-1 line-clamp-1">
+                {bono.nombre}
+              </h3>
+              <p className="text-sm text-gray-600 mb-2">
+                {bono.emisorNombre || "Emisor no especificado"}
+              </p>
+              <div
+                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${status.color}`}
+              >
+                {status.icon}
+                {status.status}
+              </div>
+            </div>
+            <div className="flex gap-1 ml-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => router.push(`/bonos/detail/${bono.id}`)}
+                className="h-8 w-8"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+              {profile.role === "emisor" && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => router.push(`/bonos/edit/${bono.id}`)}
+                    className="h-8 w-8"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => eliminarBono(bono.id, bono.nombre)}
+                    disabled={deletingId === bono.id}
+                    className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    {deletingId === bono.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Key Metrics */}
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Valor Nominal</p>
+              <p className="font-bold text-lg text-gray-900">
+                {formatCurrency(bono.valorNominal, bono.moneda)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Tasa Anual</p>
+              <p className="font-bold text-lg text-green-600">
+                {bono.tasaAnual}%
+              </p>
+            </div>
+          </div>
+
+          {/* Additional Info */}
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-gray-500">TCEA</p>
+              <p className="font-semibold text-blue-600">{tcea.toFixed(2)}%</p>
+            </div>
+            <div>
+              <p className="text-gray-500">TREA</p>
+              <p className="font-semibold text-purple-600">
+                {trea.toFixed(2)}%
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-500">Plazo</p>
+              <p className="font-semibold">{bono.plazo} años</p>
+            </div>
+            <div>
+              <p className="text-gray-500">Emisión</p>
+              <p className="font-semibold">{formatDate(bono.fechaEmision)}</p>
+            </div>
+          </div>
+        </div>
+        {/* Footer */}
+        <div className="px-6 py-3 bg-gray-50 border-t">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-600">
+              {bono.tipoTasa} • {bono.moneda}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push(`/bonos/detail/${bono.id}`)}
+              className="text-blue-600 hover:text-blue-700 h-7 px-2"
+            >
+              Ver detalles →
+            </Button>
+          </div>
+        </div>{" "}
+      </Card>
+    );
+  }
+);
+
+BonoCard.displayName = "BonoCard";
+
+// Componente memoizado para filas de tabla
+const BonoTableRow = React.memo(
+  ({
+    bono,
+    profile,
+    router,
+    eliminarBono,
+    deletingId,
+  }: {
+    bono: Bono;
+    profile: { role?: string };
+    router: { push: (path: string) => void };
+    eliminarBono: (id: string, name: string) => void;
+    deletingId: string | null;
+  }) => {
+    const { status, tcea, trea } = useBonoCalculations(bono);
+
+    return (
+      <tr key={bono.id} className="border-b hover:bg-gray-50 transition-colors">
+        <td className="p-4">
+          <div>
+            <p className="font-semibold text-gray-900">{bono.nombre}</p>
+            <p className="text-sm text-gray-600">
+              {bono.emisorNombre || "Emisor no especificado"}
+            </p>
+            <p className="text-xs text-gray-500">
+              {formatDate(bono.fechaEmision)}
+            </p>
+          </div>
+        </td>
+        <td className="p-4">
+          <div
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${status.color}`}
+          >
+            {status.icon}
+            {status.status}
+          </div>
+        </td>
+        <td className="p-4 text-right font-semibold">
+          {formatCurrency(bono.valorNominal, bono.moneda)}
+        </td>
+        <td className="p-4 text-right font-semibold text-green-600">
+          {bono.tasaAnual}%
+        </td>
+        <td className="p-4 text-right font-semibold text-blue-600">
+          {tcea.toFixed(2)}%
+        </td>
+        <td className="p-4 text-right font-semibold text-purple-600">
+          {trea.toFixed(2)}%
+        </td>
+        <td className="p-4 text-center">{bono.plazo} años</td>
+        <td className="p-4">
+          <div className="flex justify-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.push(`/bonos/detail/${bono.id}`)}
+              className="h-8 w-8"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            {profile.role === "emisor" && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => router.push(`/bonos/edit/${bono.id}`)}
+                  className="h-8 w-8"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => eliminarBono(bono.id, bono.nombre)}
+                  disabled={deletingId === bono.id}
+                  className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  {deletingId === bono.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </>
+            )}
+          </div>
+        </td>{" "}
+      </tr>
+    );
+  }
+);
+
+BonoTableRow.displayName = "BonoTableRow";
+
 export default function BonoListEnhanced() {
   const { firebaseUser, profile, loading: userLoading } = useCurrentUser();
   const [state, setState] = useState<{
@@ -138,6 +385,7 @@ export default function BonoListEnhanced() {
     hasMore: boolean;
     error: string | null;
     refreshing: boolean;
+    initialized: boolean;
   }>({
     bonos: [],
     loading: false,
@@ -147,6 +395,7 @@ export default function BonoListEnhanced() {
     hasMore: true,
     error: null,
     refreshing: false,
+    initialized: false,
   });
 
   const [filters, setFilters] = useState<FilterState>({
@@ -161,23 +410,29 @@ export default function BonoListEnhanced() {
     field: "fechaEmision",
     direction: "desc",
   });
-
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
+  const [localSearchTerm, setLocalSearchTerm] = useState("");
 
   const router = useRouter();
-
-  // Calculate statistics
+  // Optimización: Lazy loading de estadísticas
   const stats = useMemo((): BonoStats => {
+    if (state.bonos.length === 0) {
+      return {
+        total: 0,
+        valorNominalTotal: 0,
+        tasaPromedio: 0,
+        proximoVencimiento: "N/A",
+      };
+    }
+
     const total = state.bonos.length;
     const valorNominalTotal = state.bonos.reduce(
       (sum, bono) => sum + bono.valorNominal,
       0
     );
     const tasaPromedio =
-      total > 0
-        ? state.bonos.reduce((sum, bono) => sum + bono.tasaAnual, 0) / total
-        : 0;
+      state.bonos.reduce((sum, bono) => sum + bono.tasaAnual, 0) / total;
 
     // Find next maturity
     const now = new Date();
@@ -272,40 +527,66 @@ export default function BonoListEnhanced() {
             ),
             limit(BONOS_POR_PAGINA)
           );
-        }
+        } // Usar setState con callback para acceder al estado actual
+        setState((currentState) => {
+          const lastDoc =
+            isNewSearch || isRefresh ? null : currentState.lastDoc;
 
-        const lastDoc = isNewSearch || isRefresh ? null : state.lastDoc;
-        if (lastDoc) {
-          q = query(q, startAfter(lastDoc));
-        }
+          // Reconstruir query si hay lastDoc
+          let finalQuery = q;
+          if (lastDoc) {
+            finalQuery = query(q, startAfter(lastDoc));
+          }
 
-        const snapshot = await getDocs(q);
-        const bonosData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Bono[];
+          // Ejecutar query de forma asíncrona
+          getDocs(finalQuery)
+            .then((snapshot) => {
+              const bonosData = snapshot.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+              })) as Bono[];
 
-        setState((prev) => ({
-          ...prev,
-          bonos:
-            isNewSearch || isRefresh
-              ? bonosData
-              : [...prev.bonos, ...bonosData],
-          lastDoc: snapshot.docs[snapshot.docs.length - 1],
-          hasMore: snapshot.docs.length === BONOS_POR_PAGINA,
-          loading: false,
-          refreshing: false,
-          error:
-            bonosData.length === 0 && (isNewSearch || isRefresh)
-              ? "No se encontraron bonos."
-              : null,
-        }));
+              setState((prev) => ({
+                ...prev,
+                bonos:
+                  isNewSearch || isRefresh
+                    ? bonosData
+                    : [...prev.bonos, ...bonosData],
+                lastDoc: snapshot.docs[snapshot.docs.length - 1],
+                hasMore: snapshot.docs.length === BONOS_POR_PAGINA,
+                loading: false,
+                refreshing: false,
+                initialized: true,
+                error:
+                  bonosData.length === 0 && (isNewSearch || isRefresh)
+                    ? "No se encontraron bonos."
+                    : null,
+              }));
+            })
+            .catch((error: unknown) => {
+              console.error("Error fetching bonos:", error);
+              setState((prev) => ({
+                ...prev,
+                loading: false,
+                refreshing: false,
+                initialized: true,
+                error:
+                  error instanceof Error
+                    ? `Error al cargar los bonos: ${error.message}`
+                    : "Error al cargar los bonos",
+              }));
+              toast.error("Error al cargar los bonos");
+            });
+
+          return currentState; // No cambiar el estado en este setState
+        });
       } catch (error: unknown) {
         console.error("Error fetching bonos:", error);
         setState((prev) => ({
           ...prev,
           loading: false,
           refreshing: false,
+          initialized: true,
           error:
             error instanceof Error
               ? `Error al cargar los bonos: ${error.message}`
@@ -314,115 +595,157 @@ export default function BonoListEnhanced() {
         toast.error("Error al cargar los bonos");
       }
     },
-    [firebaseUser, profile, sortConfig, state.lastDoc]
+    [firebaseUser, profile, sortConfig]
   );
-
   useEffect(() => {
-    if (!userLoading && firebaseUser && profile) {
+    if (!userLoading && firebaseUser && profile && !state.initialized) {
       fetchBonos(true);
     }
-  }, [fetchBonos, userLoading, firebaseUser, profile]);
-  // Debounced search
+  }, [fetchBonos, userLoading, firebaseUser, profile, state.initialized]);
+
+  // Sincronizar estado local con estado del componente
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (state.searchTerm !== undefined) {
+    setLocalSearchTerm(state.searchTerm);
+  }, [state.searchTerm]);
+  // Debounced search - solo ejecutar para búsquedas después de la inicialización
+  useEffect(() => {
+    if (!state.initialized) return;
+
+    // Solo ejecutar búsqueda si hay término de búsqueda
+    if (state.searchTerm.length > 0) {
+      const timer = setTimeout(() => {
         fetchBonos(true);
+      }, 300);
+
+      return () => clearTimeout(timer);
+    }
+    // Si searchTerm está vacío, no hacer nada adicional
+    // ya que los datos originales ya están cargados
+  }, [state.searchTerm, fetchBonos, state.initialized]);
+  // Optimizar handleSearch para reducir re-renders
+  const handleSearch = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newSearchTerm = e.target.value;
+      setLocalSearchTerm(newSearchTerm); // Actualización inmediata de UI
+
+      // Si se limpia la búsqueda, recargar datos originales inmediatamente
+      if (newSearchTerm === "" && state.searchTerm !== "") {
+        setState((prev) => ({
+          ...prev,
+          searchTerm: "",
+          lastDoc: null,
+          hasMore: true,
+        }));
+        // Recargar datos originales cuando se limpia la búsqueda
+        fetchBonos(true);
+      } else {
+        // Debounce para actualizar el estado real
+        setState((prev) => ({
+          ...prev,
+          searchTerm: newSearchTerm,
+          lastDoc: null,
+          hasMore: true,
+        }));
       }
-    }, 300);
+    },
+    [state.searchTerm, fetchBonos]
+  );
+  const handleSort = useCallback(
+    (field: string) => {
+      const newDirection =
+        sortConfig.field === field && sortConfig.direction === "asc"
+          ? "desc"
+          : "asc";
+      setSortConfig({ field, direction: newDirection });
+      setState((prev) => ({ ...prev, lastDoc: null, hasMore: true }));
+      // Recargar datos con el nuevo ordenamiento
+      fetchBonos(true);
+    },
+    [sortConfig.field, sortConfig.direction, fetchBonos]
+  );
 
-    return () => clearTimeout(timer);
-  }, [state.searchTerm, fetchBonos]);
-
-  const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newSearchTerm = e.target.value;
-    setState((prev) => ({
-      ...prev,
-      searchTerm: newSearchTerm,
-      lastDoc: null,
-      hasMore: true,
-    }));
-  }, []);
-
-  const handleSort = (field: string) => {
-    const newDirection =
-      sortConfig.field === field && sortConfig.direction === "asc"
-        ? "desc"
-        : "asc";
-    setSortConfig({ field, direction: newDirection });
-    setState((prev) => ({ ...prev, lastDoc: null, hasMore: true }));
-  };
-
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     fetchBonos(true, true);
-  };
+  }, [fetchBonos]);
   const filteredAndSortedBonos = useMemo(() => {
+    // Si no hay bonos, retornar array vacío inmediatamente
+    if (!state.bonos.length) return [];
+
     const filtered = state.bonos.filter((bono) => {
-      // Search filter
-      const matchesSearch =
-        bono.nombre.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
-        bono.emisorNombre
-          ?.toLowerCase()
-          .includes(state.searchTerm.toLowerCase());
+      // Search filter - optimizado para evitar llamadas innecesarias
+      if (state.searchTerm) {
+        const searchTerm = state.searchTerm.toLowerCase();
+        const matchesSearch =
+          bono.nombre.toLowerCase().includes(searchTerm) ||
+          (bono.emisorNombre?.toLowerCase().includes(searchTerm) ?? false);
+        if (!matchesSearch) return false;
+      }
 
       // Currency filter
-      const matchesCurrency =
-        filters.moneda === "all" || bono.moneda === filters.moneda;
+      if (filters.moneda !== "all" && bono.moneda !== filters.moneda) {
+        return false;
+      }
 
       // Type filter
-      const matchesType =
-        filters.tipoTasa === "all" || bono.tipoTasa === filters.tipoTasa;
+      if (filters.tipoTasa !== "all" && bono.tipoTasa !== filters.tipoTasa) {
+        return false;
+      }
 
       // Rate range filter
-      const matchesMinRate =
-        !filters.minTasa || bono.tasaAnual >= parseFloat(filters.minTasa);
-      const matchesMaxRate =
-        !filters.maxTasa || bono.tasaAnual <= parseFloat(filters.maxTasa);
+      if (filters.minTasa && bono.tasaAnual < parseFloat(filters.minTasa)) {
+        return false;
+      }
+      if (filters.maxTasa && bono.tasaAnual > parseFloat(filters.maxTasa)) {
+        return false;
+      }
 
-      // Status filter
-      let matchesStatus = true;
+      // Status filter - solo calcular si es necesario
       if (filters.estado !== "all") {
         const bonoStatus = getBonoStatus(bono);
-        matchesStatus = bonoStatus.status
-          .toLowerCase()
-          .includes(filters.estado.toLowerCase());
+        if (
+          !bonoStatus.status
+            .toLowerCase()
+            .includes(filters.estado.toLowerCase())
+        ) {
+          return false;
+        }
       }
 
-      return (
-        matchesSearch &&
-        matchesCurrency &&
-        matchesType &&
-        matchesMinRate &&
-        matchesMaxRate &&
-        matchesStatus
-      );
-    });
+      return true;
+    }); // Client-side sorting optimizado
+    if (filtered.length > 1) {
+      filtered.sort((a, b) => {
+        const field = sortConfig.field as keyof Bono;
+        const aValue = a[field];
+        const bValue = b[field];
 
-    // Client-side sorting for better UX
-    filtered.sort((a, b) => {
-      let aValue: string | number = a[sortConfig.field as keyof Bono] as
-        | string
-        | number;
-      let bValue: string | number = b[sortConfig.field as keyof Bono] as
-        | string
-        | number;
+        // Handle dates más eficientemente
+        if (sortConfig.field === "fechaEmision") {
+          const aTime =
+            typeof aValue === "string" ? new Date(aValue).getTime() : 0;
+          const bTime =
+            typeof bValue === "string" ? new Date(bValue).getTime() : 0;
+          return sortConfig.direction === "asc" ? aTime - bTime : bTime - aTime;
+        }
 
-      // Handle dates
-      if (sortConfig.field === "fechaEmision") {
-        aValue = new Date(typeof aValue === "string" ? aValue : "").getTime();
-        bValue = new Date(typeof bValue === "string" ? bValue : "").getTime();
-      }
+        // Handle numbers
+        if (typeof aValue === "number" && typeof bValue === "number") {
+          return sortConfig.direction === "asc"
+            ? aValue - bValue
+            : bValue - aValue;
+        }
 
-      if (typeof aValue === "string") {
-        aValue = aValue.toLowerCase();
-        bValue = (bValue as string).toLowerCase();
-      }
+        // Handle strings
+        if (typeof aValue === "string" && typeof bValue === "string") {
+          const comparison = aValue
+            .toLowerCase()
+            .localeCompare(bValue.toLowerCase());
+          return sortConfig.direction === "asc" ? comparison : -comparison;
+        }
 
-      if (sortConfig.direction === "asc") {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
+        return 0;
+      });
+    }
 
     return filtered;
   }, [state.bonos, state.searchTerm, filters, sortConfig]);
@@ -548,15 +871,14 @@ export default function BonoListEnhanced() {
           </Card>
         </div>
       </div>
-
       {/* Controls */}
       <div className="flex flex-col lg:flex-row gap-4">
         {/* Search */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />{" "}
           <Input
             placeholder="Buscar por nombre o emisor..."
-            value={state.searchTerm}
+            value={localSearchTerm}
             onChange={handleSearch}
             className="pl-10 h-12"
           />
@@ -577,7 +899,6 @@ export default function BonoListEnhanced() {
               }`}
             />
           </Button>
-
           <div className="flex border rounded-lg">
             <Button
               variant={viewMode === "grid" ? "default" : "ghost"}
@@ -596,7 +917,6 @@ export default function BonoListEnhanced() {
               <List className="w-4 h-4" />
             </Button>
           </div>
-
           <Button
             variant="outline"
             onClick={() => exportBonosToPDF(filteredAndSortedBonos)}
@@ -605,10 +925,18 @@ export default function BonoListEnhanced() {
           >
             <Download className="w-4 h-4" />
             PDF
-          </Button>
+          </Button>{" "}
         </div>
       </div>
-
+      {/* Indicador sutil de loading durante búsqueda/filtrado */}
+      {(state.loading || state.refreshing) && state.initialized && (
+        <div className="flex justify-center py-2">
+          <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+            <Loader2 className="animate-spin h-3 w-3" />
+            <span>Actualizando...</span>
+          </div>
+        </div>
+      )}
       {/* Filters Panel */}
       {showFilters && (
         <Card className="p-6 bg-gray-50">
@@ -725,7 +1053,6 @@ export default function BonoListEnhanced() {
           </div>
         </Card>
       )}
-
       {/* Error State */}
       {state.error && (
         <Card className="p-6 bg-red-50 border-red-200">
@@ -737,17 +1064,16 @@ export default function BonoListEnhanced() {
             </div>
           </div>
         </Card>
-      )}
-
-      {/* Loading State */}
-      {state.loading ? (
+      )}{" "}
+      {/* Loading State - Solo mostrar loading completo en carga inicial */}
+      {state.loading && !state.initialized ? (
         <div className="flex justify-center items-center py-16">
           <Loader2 className="animate-spin h-8 w-8 text-blue-600 mr-3" />
           <span className="text-blue-700 font-medium text-lg">
             Cargando bonos...
           </span>
         </div>
-      ) : filteredAndSortedBonos.length === 0 ? (
+      ) : filteredAndSortedBonos.length === 0 && state.initialized ? (
         /* Empty State */
         <Card className="p-12 text-center">
           <Building className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -830,149 +1156,54 @@ export default function BonoListEnhanced() {
                   ))}
               </Button>
             </div>
-          </div>
-
+          </div>{" "}
           {/* Bonds Grid/List */}
-          {viewMode === "grid" ? (
+          {state.loading && state.initialized ? (
+            /* Skeleton loading durante búsqueda/filtrado */
+            <div className="space-y-4">
+              {viewMode === "grid" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[...Array(6)].map((_, i) => (
+                    <Card key={i} className="p-6 animate-pulse">
+                      <div className="space-y-4">
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="h-3 bg-gray-200 rounded"></div>
+                          <div className="h-3 bg-gray-200 rounded"></div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card className="overflow-hidden">
+                  <div className="animate-pulse">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="border-b p-4">
+                        <div className="flex items-center space-x-4">
+                          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                          <div className="h-4 bg-gray-200 rounded w-1/6"></div>
+                          <div className="h-4 bg-gray-200 rounded w-1/6"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+            </div>
+          ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredAndSortedBonos.map((bono) => {
-                const status = getBonoStatus(bono);
-                const tcea = calcularTCEABono(bono);
-                const trea = calcularTREABono(bono);
-
-                return (
-                  <Card
-                    key={bono.id}
-                    className="overflow-hidden hover:shadow-lg transition-shadow duration-200"
-                  >
-                    <div className="p-6">
-                      {/* Header */}
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex-1">
-                          <h3 className="font-bold text-lg text-gray-900 mb-1 line-clamp-1">
-                            {bono.nombre}
-                          </h3>
-                          <p className="text-sm text-gray-600 mb-2">
-                            {bono.emisorNombre || "Emisor no especificado"}
-                          </p>
-                          <div
-                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${status.color}`}
-                          >
-                            {status.icon}
-                            {status.status}
-                          </div>
-                        </div>
-                        <div className="flex gap-1 ml-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                              router.push(`/bonos/detail/${bono.id}`)
-                            }
-                            className="h-8 w-8"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {profile.role === "emisor" && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() =>
-                                  router.push(`/bonos/edit/${bono.id}`)
-                                }
-                                className="h-8 w-8"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() =>
-                                  eliminarBono(bono.id, bono.nombre)
-                                }
-                                disabled={state.deletingId === bono.id}
-                                className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                              >
-                                {state.deletingId === bono.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Key Metrics */}
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <p className="text-xs text-gray-500 mb-1">
-                            Valor Nominal
-                          </p>
-                          <p className="font-bold text-lg text-gray-900">
-                            {formatCurrency(bono.valorNominal, bono.moneda)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500 mb-1">
-                            Tasa Anual
-                          </p>
-                          <p className="font-bold text-lg text-green-600">
-                            {bono.tasaAnual}%
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Additional Info */}
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-gray-500">TCEA</p>
-                          <p className="font-semibold text-blue-600">
-                            {tcea.toFixed(2)}%
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">TREA</p>
-                          <p className="font-semibold text-purple-600">
-                            {trea.toFixed(2)}%
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Plazo</p>
-                          <p className="font-semibold">{bono.plazo} años</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Emisión</p>
-                          <p className="font-semibold">
-                            {formatDate(bono.fechaEmision)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Footer */}
-                    <div className="px-6 py-3 bg-gray-50 border-t">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-600">
-                          {bono.tipoTasa} • {bono.moneda}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            router.push(`/bonos/detail/${bono.id}`)
-                          }
-                          className="text-blue-600 hover:text-blue-700 h-7 px-2"
-                        >
-                          Ver detalles →
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
+              {filteredAndSortedBonos.map((bono) => (
+                <BonoCard
+                  key={bono.id}
+                  bono={bono}
+                  profile={profile}
+                  router={router}
+                  eliminarBono={eliminarBono}
+                  deletingId={state.deletingId}
+                />
+              ))}
             </div>
           ) : (
             /* List View */
@@ -1006,104 +1237,23 @@ export default function BonoListEnhanced() {
                         Acciones
                       </th>
                     </tr>
-                  </thead>
+                  </thead>{" "}
                   <tbody>
-                    {filteredAndSortedBonos.map((bono) => {
-                      const status = getBonoStatus(bono);
-                      const tcea = calcularTCEABono(bono);
-                      const trea = calcularTREABono(bono);
-
-                      return (
-                        <tr
-                          key={bono.id}
-                          className="border-b hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="p-4">
-                            <div>
-                              <p className="font-semibold text-gray-900">
-                                {bono.nombre}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                {bono.emisorNombre || "Emisor no especificado"}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {formatDate(bono.fechaEmision)}
-                              </p>
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <div
-                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${status.color}`}
-                            >
-                              {status.icon}
-                              {status.status}
-                            </div>
-                          </td>
-                          <td className="p-4 text-right font-semibold">
-                            {formatCurrency(bono.valorNominal, bono.moneda)}
-                          </td>
-                          <td className="p-4 text-right font-semibold text-green-600">
-                            {bono.tasaAnual}%
-                          </td>
-                          <td className="p-4 text-right font-semibold text-blue-600">
-                            {tcea.toFixed(2)}%
-                          </td>
-                          <td className="p-4 text-right font-semibold text-purple-600">
-                            {trea.toFixed(2)}%
-                          </td>
-                          <td className="p-4 text-center">{bono.plazo} años</td>
-                          <td className="p-4">
-                            <div className="flex justify-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() =>
-                                  router.push(`/bonos/detail/${bono.id}`)
-                                }
-                                className="h-8 w-8"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              {profile.role === "emisor" && (
-                                <>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() =>
-                                      router.push(`/bonos/edit/${bono.id}`)
-                                    }
-                                    className="h-8 w-8"
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() =>
-                                      eliminarBono(bono.id, bono.nombre)
-                                    }
-                                    disabled={state.deletingId === bono.id}
-                                    className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                  >
-                                    {state.deletingId === bono.id ? (
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Trash2 className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {filteredAndSortedBonos.map((bono) => (
+                      <BonoTableRow
+                        key={bono.id}
+                        bono={bono}
+                        profile={profile}
+                        router={router}
+                        eliminarBono={eliminarBono}
+                        deletingId={state.deletingId}
+                      />
+                    ))}
                   </tbody>
                 </table>
               </div>
             </Card>
           )}
-
           {/* Load More */}
           {state.hasMore && (
             <div className="flex justify-center pt-8">

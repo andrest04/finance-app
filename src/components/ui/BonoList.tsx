@@ -163,7 +163,7 @@ export default function BonosList() {
         toast.error("Error al cargar los bonos");
       }
     },
-    [firebaseUser, profile] // Quitar state.lastDoc de dependencias
+    [firebaseUser, profile, state.lastDoc]
   );
 
   useEffect(() => {
