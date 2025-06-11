@@ -22,6 +22,11 @@ import {
 } from "@/lib/indicadoresBono";
 import { calcularFlujoFrances } from "@/lib/francesMetod";
 import { calcularTCEABono, calcularTREABono } from "@/lib/bonoUtils";
+import {
+  calcularPrecioBonoDesdeBono,
+  interpretarPrecioBono,
+  type PrecioBonoResult,
+} from "@/lib/precioBonoCalculator";
 
 export default function DetalleBonoPage() {
   const { firebaseUser, profile } = useCurrentUser();
@@ -85,7 +90,6 @@ export default function DetalleBonoPage() {
 
   const formatInteger = (value: number | string, suffix = "") =>
     `${parseInt(String(value))}${suffix}`;
-
   useEffect(() => {
     if (!firebaseUser || !id || !profile) return;
 
@@ -111,8 +115,12 @@ export default function DetalleBonoPage() {
         router.push("/bonos/list");
       }
     });
-  }, [firebaseUser, id, router, profile]); // --- Indicadores financieros: duración, duración modificada, convexidad y TCEA ---
+  }, [firebaseUser, id, router, profile]);
+
+  // --- Indicadores financieros: duración, duración modificada, convexidad, precio y TCEA ---
   let indicadores = null;
+  let precioBono: PrecioBonoResult | null = null;
+  let interpretacion = null;
   let tcea = 0;
   let treaBono = 0;
   if (bono) {
@@ -143,6 +151,10 @@ export default function DetalleBonoPage() {
       duracionMod: calcularDuracionModificada(flujos, tasaPeriodo),
       convexidad: calcularConvexidad(flujos, tasaPeriodo),
     };
+
+    // Calcular precio del bono usando la tasa de mercado
+    precioBono = calcularPrecioBonoDesdeBono(bono, bono.tasaMercado);
+    interpretacion = interpretarPrecioBono(precioBono);
 
     // Calcular TCEA y TREA
     tcea = calcularTCEABono(bono);
@@ -403,7 +415,238 @@ export default function DetalleBonoPage() {
               Estos indicadores ayudan a medir el riesgo y sensibilidad del bono
               ante cambios en la tasa de interés.
             </span>
+          </div>{" "}
+        </section>
+
+        {/* Valoración del Bono */}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-blue-700">
+              Valoración del Bono
+            </h2>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={0} className="cursor-pointer">
+                  <Info className="w-4 h-4 text-blue-400" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                Precio actual del bono calculado descontando los flujos futuros
+                a la tasa de mercado. Incluye análisis de prima/descuento.
+              </TooltipContent>
+            </Tooltip>
           </div>
+          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Precio Actual */}
+            <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
+              <div className="flex items-center gap-1 mb-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase">
+                  Precio Actual
+                </p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0} className="cursor-pointer">
+                      <Info className="w-3 h-3 text-gray-400" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Valor presente de todos los flujos futuros del bono
+                    descontados a la tasa de mercado actual.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <p className="text-base text-gray-800 font-mono">
+                {precioBono
+                  ? `${bono?.moneda} ${precioBono.precio.toLocaleString(
+                      "es-PE",
+                      { minimumFractionDigits: 2 }
+                    )}`
+                  : "-"}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Precio de mercado calculado
+              </p>
+            </div>
+
+            {/* Valor Nominal */}
+            <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
+              <div className="flex items-center gap-1 mb-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase">
+                  Valor Nominal
+                </p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0} className="cursor-pointer">
+                      <Info className="w-3 h-3 text-gray-400" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Valor facial del bono que se pagará al vencimiento.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <p className="text-base text-gray-800 font-mono">
+                {bono
+                  ? `${bono.moneda} ${bono.valorNominal.toLocaleString(
+                      "es-PE",
+                      { minimumFractionDigits: 2 }
+                    )}`
+                  : "-"}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Valor al vencimiento</p>
+            </div>
+
+            {/* Prima/Descuento */}
+            <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
+              <div className="flex items-center gap-1 mb-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase">
+                  Prima/Descuento
+                </p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0} className="cursor-pointer">
+                      <Info className="w-3 h-3 text-gray-400" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Diferencia entre el precio actual y el valor nominal. Prima
+                    si es positivo, descuento si es negativo.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <p
+                className={`text-base font-mono ${
+                  precioBono?.prima
+                    ? precioBono.prima > 0
+                      ? "text-green-700"
+                      : "text-red-700"
+                    : "text-gray-800"
+                }`}
+              >
+                {precioBono
+                  ? `${precioBono.prima > 0 ? "+" : ""}${
+                      bono?.moneda
+                    } ${precioBono.prima.toLocaleString("es-PE", {
+                      minimumFractionDigits: 2,
+                    })}`
+                  : "-"}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {precioBono?.esObligacionPremium
+                  ? "Obligación Premium"
+                  : precioBono?.esObligacionDescuento
+                  ? "Obligación con Descuento"
+                  : "A la Par"}
+              </p>
+            </div>
+
+            {/* Porcentaje Prima */}
+            <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
+              <div className="flex items-center gap-1 mb-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase">
+                  % Prima/Descuento
+                </p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0} className="cursor-pointer">
+                      <Info className="w-3 h-3 text-gray-400" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Prima o descuento como porcentaje del valor nominal.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <p
+                className={`text-base font-mono ${
+                  precioBono?.porcentajePrima
+                    ? precioBono.porcentajePrima > 0
+                      ? "text-green-700"
+                      : "text-red-700"
+                    : "text-gray-800"
+                }`}
+              >
+                {precioBono
+                  ? `${
+                      precioBono.porcentajePrima > 0 ? "+" : ""
+                    }${precioBono.porcentajePrima.toFixed(2)}%`
+                  : "-"}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Relativo al valor nominal
+              </p>
+            </div>
+          </div>
+
+          {/* Interpretación del Precio */}
+          {precioBono && interpretacion && (
+            <div
+              className={`p-4 rounded-lg border ${
+                precioBono.esObligacionPremium
+                  ? "bg-green-50 border-green-200"
+                  : precioBono.esObligacionDescuento
+                  ? "bg-orange-50 border-orange-200"
+                  : "bg-blue-50 border-blue-200"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className={`p-2 rounded-lg ${
+                    precioBono.esObligacionPremium
+                      ? "bg-green-100"
+                      : precioBono.esObligacionDescuento
+                      ? "bg-orange-100"
+                      : "bg-blue-100"
+                  }`}
+                >
+                  <Info
+                    className={`w-4 h-4 ${
+                      precioBono.esObligacionPremium
+                        ? "text-green-600"
+                        : precioBono.esObligacionDescuento
+                        ? "text-orange-600"
+                        : "text-blue-600"
+                    }`}
+                  />
+                </div>
+                <div className="flex-1">
+                  <h4
+                    className={`font-semibold text-sm ${
+                      precioBono.esObligacionPremium
+                        ? "text-green-800"
+                        : precioBono.esObligacionDescuento
+                        ? "text-orange-800"
+                        : "text-blue-800"
+                    }`}
+                  >
+                    {interpretacion.tipo}
+                  </h4>
+                  <p
+                    className={`text-sm mt-1 ${
+                      precioBono.esObligacionPremium
+                        ? "text-green-700"
+                        : precioBono.esObligacionDescuento
+                        ? "text-orange-700"
+                        : "text-blue-700"
+                    }`}
+                  >
+                    {interpretacion.descripcion}
+                  </p>
+                  <p
+                    className={`text-xs mt-2 ${
+                      precioBono.esObligacionPremium
+                        ? "text-green-600"
+                        : precioBono.esObligacionDescuento
+                        ? "text-orange-600"
+                        : "text-blue-600"
+                    }`}
+                  >
+                    💡 {interpretacion.recomendacion}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Análisis de Costos y Rentabilidad */}
