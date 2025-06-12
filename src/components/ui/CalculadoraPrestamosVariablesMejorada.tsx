@@ -146,7 +146,6 @@ export default function CalculadoraPrestamosVariablesMejorada() {
           períodos de gracia y estructuras complejas
         </p>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {" "}
         {/* Panel de Configuración Ultra Mejorado */}
@@ -255,7 +254,9 @@ export default function CalculadoraPrestamosVariablesMejorada() {
                 <Label
                   htmlFor="frecuencia"
                   className="text-sm font-semibold text-gray-700 flex items-center gap-2"
-                >                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                >
+                  {" "}
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                   Frecuencia de Pagos
                 </Label>
                 <select
@@ -270,7 +271,9 @@ export default function CalculadoraPrestamosVariablesMejorada() {
                         : undefined,
                     })
                   }
-                >                  <option value="">Seleccionar frecuencia de pagos</option>
+                >
+                  {" "}
+                  <option value="">Seleccionar frecuencia de pagos</option>
                   <option value="12">📅 Mensual (12 pagos por año)</option>
                   <option value="4">📊 Trimestral (4 pagos por año)</option>
                   <option value="3">📈 Cuatrimestral (3 pagos por año)</option>
@@ -866,6 +869,7 @@ export default function CalculadoraPrestamosVariablesMejorada() {
             </Card>
           )}
         </div>
-      </div>    </div>
+      </div>{" "}
+    </div>
   );
 }
