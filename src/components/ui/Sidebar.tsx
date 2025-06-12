@@ -18,6 +18,7 @@ import {
   HelpCircle,
   Menu,
   X,
+  Calculator,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -46,6 +47,16 @@ const navigationItems = [
 ];
 
 const bottomNavigationItems = [
+  {
+    name: "Fórmulas",
+    href: "/formulas",
+    icon: Calculator,
+  },
+  {
+    name: "Préstamos Variables",
+    href: "/prestamos",
+    icon: Calculator,
+  },
   {
     name: "Perfil",
     href: "/profile",
