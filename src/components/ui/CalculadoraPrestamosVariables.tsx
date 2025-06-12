@@ -3,7 +3,16 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Calculator, Plus, Trash2 } from "lucide-react";
+import {
+  Calculator,
+  Plus,
+  Trash2,
+  BookOpen,
+  TrendingUp,
+  Info,
+  AlertCircle,
+  CheckCircle,
+} from "lucide-react";
 import {
   calcularPrestamoVariable,
   PrestamoVariableParams,
@@ -122,13 +131,67 @@ export default function CalculadoraPrestamosVariables() {
   };
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="text-center mb-8">
+      {/* Sección de Introducción Académica */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+        <div className="flex items-start gap-4">
+          <div className="bg-blue-100 p-3 rounded-full">
+            <BookOpen className="w-6 h-6 text-blue-600" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold text-blue-900 mb-2">
+              Préstamos con Tasas Variables - Aplicación Académica
+            </h2>
+            <p className="text-blue-700 mb-4 leading-relaxed">
+              Esta calculadora implementa los conceptos financieros avanzados
+              para préstamos con tasas variables, períodos de gracia y cuotas
+              iniciales. Forma parte del sistema integral de valoración de
+              instrumentos financieros desarrollado para el trabajo final.
+            </p>
+            <div className="grid md:grid-cols-3 gap-4 text-sm">
+              <div className="bg-white p-3 rounded-lg border border-blue-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp className="w-4 h-4 text-green-600" />
+                  <span className="font-semibold text-gray-800">
+                    Tasas Variables
+                  </span>
+                </div>
+                <p className="text-gray-600">
+                  Manejo de TEA que cambia por períodos
+                </p>
+              </div>
+              <div className="bg-white p-3 rounded-lg border border-blue-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <AlertCircle className="w-4 h-4 text-orange-600" />
+                  <span className="font-semibold text-gray-800">
+                    Períodos de Gracia
+                  </span>
+                </div>
+                <p className="text-gray-600">
+                  Gracia total y parcial configurable
+                </p>
+              </div>
+              <div className="bg-white p-3 rounded-lg border border-blue-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle className="w-4 h-4 text-blue-600" />
+                  <span className="font-semibold text-gray-800">
+                    Método Francés
+                  </span>
+                </div>
+                <p className="text-gray-600">Cuotas constantes por segmentos</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Título Principal */}
+      <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Calculadora de Préstamos con Tasas Variables
         </h1>
         <p className="text-gray-600">
-          Calcula cronogramas de pago con tasas variables, períodos de gracia y
-          cuota inicial
+          Herramienta académica para análisis financiero avanzado de préstamos
+          complejos
         </p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -149,9 +212,10 @@ export default function CalculadoraPrestamosVariables() {
                   onChange={(e) =>
                     setParams({
                       ...params,
-                      precioVenta: e.target.value
-                        ? parseFloat(e.target.value)
-                        : undefined,
+                      precioVenta:
+                        e.target.value && !isNaN(parseFloat(e.target.value))
+                          ? parseFloat(e.target.value)
+                          : undefined,
                     })
                   }
                   placeholder="Ej: 1000000"
@@ -166,9 +230,10 @@ export default function CalculadoraPrestamosVariables() {
                   onChange={(e) =>
                     setParams({
                       ...params,
-                      cuotaInicialPorcentaje: e.target.value
-                        ? parseFloat(e.target.value)
-                        : 0,
+                      cuotaInicialPorcentaje:
+                        e.target.value && !isNaN(parseFloat(e.target.value))
+                          ? parseFloat(e.target.value)
+                          : 0,
                     })
                   }
                   placeholder="Ej: 20"
@@ -183,9 +248,10 @@ export default function CalculadoraPrestamosVariables() {
                   onChange={(e) =>
                     setParams({
                       ...params,
-                      frecuenciaPago: e.target.value
-                        ? parseInt(e.target.value)
-                        : undefined,
+                      frecuenciaPago:
+                        e.target.value && !isNaN(parseInt(e.target.value))
+                          ? parseInt(e.target.value)
+                          : undefined,
                     })
                   }
                 >
@@ -206,9 +272,10 @@ export default function CalculadoraPrestamosVariables() {
                   onChange={(e) =>
                     setParams({
                       ...params,
-                      plazoAnos: e.target.value
-                        ? parseInt(e.target.value)
-                        : undefined,
+                      plazoAnos:
+                        e.target.value && !isNaN(parseInt(e.target.value))
+                          ? parseInt(e.target.value)
+                          : undefined,
                     })
                   }
                   placeholder="Ej: 5"
@@ -223,9 +290,10 @@ export default function CalculadoraPrestamosVariables() {
                   onChange={(e) =>
                     setParams({
                       ...params,
-                      plazoGraciaTotal: e.target.value
-                        ? parseInt(e.target.value)
-                        : 0,
+                      plazoGraciaTotal:
+                        e.target.value && !isNaN(parseInt(e.target.value))
+                          ? parseInt(e.target.value)
+                          : 0,
                     })
                   }
                   placeholder="Ej: 0"
@@ -240,9 +308,10 @@ export default function CalculadoraPrestamosVariables() {
                   onChange={(e) =>
                     setParams({
                       ...params,
-                      plazoGraciaParcial: e.target.value
-                        ? parseInt(e.target.value)
-                        : 0,
+                      plazoGraciaParcial:
+                        e.target.value && !isNaN(parseInt(e.target.value))
+                          ? parseInt(e.target.value)
+                          : 0,
                     })
                   }
                   placeholder="Ej: 0"
@@ -288,7 +357,9 @@ export default function CalculadoraPrestamosVariables() {
                           actualizarTasaPeriodo(
                             tasa.id,
                             "desde",
-                            e.target.value ? parseInt(e.target.value) : 1
+                            e.target.value && !isNaN(parseInt(e.target.value))
+                              ? parseInt(e.target.value)
+                              : 1
                           )
                         }
                         className="text-sm"
@@ -303,7 +374,9 @@ export default function CalculadoraPrestamosVariables() {
                           actualizarTasaPeriodo(
                             tasa.id,
                             "hasta",
-                            e.target.value ? parseInt(e.target.value) : 1
+                            e.target.value && !isNaN(parseInt(e.target.value))
+                              ? parseInt(e.target.value)
+                              : 1
                           )
                         }
                         className="text-sm"
@@ -319,7 +392,9 @@ export default function CalculadoraPrestamosVariables() {
                           actualizarTasaPeriodo(
                             tasa.id,
                             "tasa",
-                            e.target.value ? parseFloat(e.target.value) : 0
+                            e.target.value && !isNaN(parseFloat(e.target.value))
+                              ? parseFloat(e.target.value)
+                              : 0
                           )
                         }
                         className="text-sm"
