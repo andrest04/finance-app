@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import CalculadoraPrestamosVariables from "@/components/ui/CalculadoraPrestamosVariables";
+import CalculadoraPrestamosVariablesMejorada from "@/components/ui/CalculadoraPrestamosVariablesMejorada";
 
 export default function PrestamosVariablesPage() {
-  return <CalculadoraPrestamosVariables />;
+  return <CalculadoraPrestamosVariablesMejorada />;
 }
