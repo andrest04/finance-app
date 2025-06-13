@@ -9,7 +9,6 @@ import {
   Trash2,
   BookOpen,
   TrendingUp,
-  Info,
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
