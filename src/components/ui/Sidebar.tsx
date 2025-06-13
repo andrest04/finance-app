@@ -53,11 +53,6 @@ const bottomNavigationItems = [
     icon: Calculator,
   },
   {
-    name: "Préstamos Variables",
-    href: "/prestamos",
-    icon: Calculator,
-  },
-  {
     name: "Perfil",
     href: "/profile",
     icon: User,
