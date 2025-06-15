@@ -230,11 +230,35 @@ export default function DetalleBonoPage() {
                     "comisionBonista",
                   ].includes(campo)
                 ) {
-                  valor = formatPercentage(bono[typedCampo] ?? 0);
+                  const fieldValue = bono[typedCampo];
+                  if (
+                    typeof fieldValue === "number" ||
+                    typeof fieldValue === "string"
+                  ) {
+                    valor = formatPercentage(fieldValue ?? 0);
+                  } else {
+                    valor = formatPercentage(0);
+                  }
                 } else if (campo === "valorNominal") {
-                  valor = formatCurrency(bono[typedCampo] ?? 0);
+                  const fieldValue = bono[typedCampo];
+                  if (
+                    typeof fieldValue === "number" ||
+                    typeof fieldValue === "string"
+                  ) {
+                    valor = formatCurrency(fieldValue ?? 0);
+                  } else {
+                    valor = formatCurrency(0);
+                  }
                 } else if (["plazo", "nGracia"].includes(campo)) {
-                  valor = formatInteger(bono[typedCampo] ?? "");
+                  const fieldValue = bono[typedCampo];
+                  if (
+                    typeof fieldValue === "number" ||
+                    typeof fieldValue === "string"
+                  ) {
+                    valor = formatInteger(fieldValue ?? "");
+                  } else {
+                    valor = formatInteger(0);
+                  }
                 } else if (
                   typeof bono[typedCampo] === "object" ||
                   typeof bono[typedCampo] === "undefined"
