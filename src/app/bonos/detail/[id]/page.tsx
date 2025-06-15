@@ -69,7 +69,7 @@ export default function DetalleBonoPage() {
     "Plazo y Gracia": ["tipoGracia", "nGracia"],
     "Costos y Mercado": ["comisionEmisor", "comisionBonista", "tasaMercado"],
   };
-
+  // Mapeo de frecuencias para mejor legibilidad
   const frecuenciaTexto: { [key: string]: string } = {
     "360": "Diaria",
     "12": "Mensual",
