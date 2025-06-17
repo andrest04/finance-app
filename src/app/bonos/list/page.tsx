@@ -1,7 +1,7 @@
 "use client";
 
-import BonoListEnhanced from "@/components/ui/BonoListEnhanced";
-import ProtectedRoute from "@/components/RouteGuard";
+import BonoListEnhanced from "@/components/bonos/BonoListEnhanced";
+import ProtectedRoute from "@/components/auth/RouteGuard";
 
 export default function ListaBonosPage() {
   return (

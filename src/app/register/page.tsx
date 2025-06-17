@@ -35,7 +35,6 @@ export default function RegisterPage() {
       setError("Las contraseñas no coinciden");
       return;
     }
-
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -53,6 +52,22 @@ export default function RegisterPage() {
         router.push("/inversionista/dashboard");
       }
     } catch (error: unknown) {
+      console.error("Registration error:", error);
+
+      // Handle specific Firebase Auth errors
+      if (error instanceof Error) {
+        const errorCode = error.message.includes("auth/email-already-in-use");
+
+        if (errorCode) {
+          setError(
+            "Esta cuenta ya está registrada. Si eliminaste tu perfil anteriormente, " +
+              "puedes intentar iniciar sesión y el sistema recreará tu perfil automáticamente. " +
+              "O contacta al administrador para limpiar la cuenta completamente."
+          );
+          return;
+        }
+      }
+
       setError(getErrorMessage(error));
     }
   };

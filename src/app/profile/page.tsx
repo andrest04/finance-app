@@ -9,7 +9,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "sonner";
 import Image from "next/image";
-import ProtectedRoute from "@/components/RouteGuard";
+import ProtectedRoute from "@/components/auth/RouteGuard";
 
 export default function ProfilePage() {
   const { profile, firebaseUser } = useCurrentUser();

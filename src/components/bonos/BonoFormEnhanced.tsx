@@ -47,22 +47,154 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { calcularFlujoFrances } from "@/lib/francesMetod";
 
-const bonoFormSchema = z.object({
-  nombre: z.string().min(1, "El nombre es requerido"),
-  valorNominal: z.string().min(1, "El valor nominal es requerido"),
-  moneda: z.string().min(1, "La moneda es requerida"),
-  tipoTasa: z.string().min(1, "El tipo de tasa es requerido"),
-  tasaAnual: z.string().optional(),
-  esTasaDinamica: z.boolean().optional(),
-  frecuenciaPago: z.string().min(1, "La frecuencia de pago es requerida"),
-  frecuenciaCapitalizacion: z.string().optional(),
-  plazo: z.string().min(1, "El plazo es requerido"),
-  tipoGracia: z.string().min(1, "El tipo de gracia es requerido"),
-  nGracia: z.string().optional(),
-  fechaEmision: z.string().min(1, "La fecha de emisión es requerida"),
-  comisionEmisor: z.string().min(1, "La comisión del emisor es requerida"),
-  comisionBonista: z.string().min(1, "La comisión del bonista es requerida"),
-});
+const bonoFormSchema = z
+  .object({
+    nombre: z
+      .string()
+      .min(1, "El nombre es requerido")
+      .min(3, "El nombre debe tener al menos 3 caracteres")
+      .max(100, "El nombre no puede exceder 100 caracteres"),
+    valorNominal: z
+      .string()
+      .min(1, "El valor nominal es requerido")
+      .refine((val) => {
+        const num = parseFloat(val);
+        return !isNaN(num) && num > 0;
+      }, "El valor nominal debe ser mayor a 0"),
+    moneda: z
+      .string()
+      .min(1, "La moneda es requerida")
+      .refine((val) => ["PEN", "USD", "EUR"].includes(val), "Moneda no válida"),
+    tipoTasa: z
+      .string()
+      .min(1, "El tipo de tasa es requerido")
+      .refine(
+        (val) => ["Efectiva", "Nominal"].includes(val),
+        "Tipo de tasa no válido"
+      ),
+    tasaAnual: z
+      .string()
+      .optional()
+      .refine((val) => {
+        if (!val) return true; // Optional field
+        const num = parseFloat(val);
+        return !isNaN(num) && num >= 0 && num <= 100;
+      }, "La tasa debe estar entre 0% y 100%"),
+    esTasaDinamica: z.boolean().optional(),
+    frecuenciaPago: z
+      .string()
+      .min(1, "La frecuencia de pago es requerida")
+      .refine(
+        (val) => ["1", "2"].includes(val),
+        "Solo se permite frecuencia anual (1) o semestral (2)"
+      ),
+    frecuenciaCapitalizacion: z.string().optional(),
+    plazo: z
+      .string()
+      .min(1, "El plazo es requerido")
+      .refine((val) => {
+        const num = parseInt(val);
+        return !isNaN(num) && num > 0 && num <= 30;
+      }, "El plazo debe estar entre 1 y 30 años"),
+    tipoGracia: z
+      .string()
+      .min(1, "El tipo de gracia es requerido")
+      .refine(
+        (val) => ["Sin Gracia", "Ninguno", "Parcial", "Total"].includes(val),
+        "Tipo de gracia no válido"
+      ),
+    nGracia: z.string().optional(),
+    fechaEmision: z
+      .string()
+      .min(1, "La fecha de emisión es requerida")
+      .refine((val) => {
+        const fecha = new Date(val);
+        const hoy = new Date();
+        const futuroLimite = new Date();
+        futuroLimite.setFullYear(hoy.getFullYear() + 2); // Max 2 years in future
+
+        return fecha <= futuroLimite && fecha >= new Date("2000-01-01");
+      }, "La fecha debe ser válida y no muy lejana en el futuro"),
+    comisionEmisor: z
+      .string()
+      .min(1, "La comisión del emisor es requerida")
+      .refine((val) => {
+        const num = parseFloat(val);
+        return !isNaN(num) && num >= 0 && num <= 10;
+      }, "La comisión del emisor debe estar entre 0% y 10%"),
+    comisionBonista: z
+      .string()
+      .min(1, "La comisión del bonista es requerida")
+      .refine((val) => {
+        const num = parseFloat(val);
+        return !isNaN(num) && num >= 0 && num <= 10;
+      }, "La comisión del bonista debe estar entre 0% y 10%"),
+    tasaMercado: z
+      .string()
+      .optional()
+      .refine((val) => {
+        if (!val) return true; // Optional field, will be calculated
+        const num = parseFloat(val);
+        return !isNaN(num) && num >= 0 && num <= 100;
+      }, "La tasa de mercado debe estar entre 0% y 100%"),
+  })
+  .superRefine((data, ctx) => {
+    // Validate frecuenciaCapitalizacion based on tipoTasa
+    if (data.tipoTasa === "Nominal" && !data.frecuenciaCapitalizacion) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["frecuenciaCapitalizacion"],
+        message: "Frecuencia de capitalización requerida para tasa nominal",
+      });
+    }
+
+    if (
+      data.frecuenciaCapitalizacion &&
+      !["1", "2"].includes(data.frecuenciaCapitalizacion)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["frecuenciaCapitalizacion"],
+        message: "Solo se permite frecuencia anual (1) o semestral (2)",
+      });
+    }
+
+    // Validate nGracia
+    const nGracia = parseInt(data.nGracia || "0");
+    const plazo = parseInt(data.plazo || "0");
+    const frecuencia = parseInt(data.frecuenciaPago || "1");
+
+    if (isNaN(nGracia) || nGracia < 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["nGracia"],
+        message:
+          "Los períodos de gracia deben ser un número válido y no negativo",
+      });
+    }
+
+    if (
+      (data.tipoGracia === "Sin Gracia" || data.tipoGracia === "Ninguno") &&
+      nGracia > 0
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["nGracia"],
+        message: "Los períodos de gracia deben ser 0 cuando no hay gracia",
+      });
+    }
+
+    if (plazo > 0 && frecuencia > 0) {
+      const totalPeriodos = plazo * frecuencia;
+      if (nGracia > totalPeriodos) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["nGracia"],
+          message: `Los períodos de gracia no pueden exceder ${totalPeriodos} (total de períodos)`,
+        });
+      }
+    }
+  });
 
 type BonoFormData = z.infer<typeof bonoFormSchema>;
 
@@ -113,6 +245,7 @@ export default function BonoFormEnhanced() {
       fechaEmision: new Date().toISOString().split("T")[0],
       comisionEmisor: "0",
       comisionBonista: "0",
+      tasaMercado: "",
     },
   });
 
@@ -351,9 +484,16 @@ export default function BonoFormEnhanced() {
         console.error("Error loading user settings:", error);
       }
     };
-
     loadUserSettings();
   }, [firebaseUser, form]);
+
+  // Auto-manage nGracia based on tipoGracia
+  useEffect(() => {
+    if (tipoGracia === "Sin Gracia") {
+      form.setValue("nGracia", "0");
+    }
+  }, [tipoGracia, form]);
+
   const onSubmit = async (data: BonoFormData) => {
     if (!firebaseUser) {
       toast.error("Debes iniciar sesión para registrar un bono.");
@@ -481,7 +621,7 @@ export default function BonoFormEnhanced() {
         </div>
         {completionPercentage === 100 && (
           <div className="mt-2 flex items-center gap-2 text-green-700">
-            <CheckCircle className="w-4 h-4" />
+            <CheckCircle className="w-4 h-4" />{" "}
             <span className="text-sm font-medium">
               ¡Formulario completo! Listo para registrar.
             </span>
@@ -489,16 +629,38 @@ export default function BonoFormEnhanced() {
         )}
       </Card>
 
+      {/* Validation Info */}
+      <Card className="p-4 bg-green-50 border-green-200">
+        <div className="flex items-start gap-3">
+          <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+          <div>
+            <h3 className="text-sm font-semibold text-green-800 mb-1">
+              ✅ Validaciones Mejoradas Activas
+            </h3>
+            <ul className="text-sm text-green-700 space-y-1">
+              <li>• Valores numéricos validados (sin negativos ni extremos)</li>
+              <li>• Frecuencias limitadas: solo anual (1) y semestral (2)</li>
+              <li>
+                • Comisiones máximas: 10% para estructuración y colocación
+              </li>
+              <li>• Períodos de gracia automáticamente controlados</li>
+              <li>• CAVALI fijo: 0.50% (según normativa)</li>
+            </ul>
+          </div>
+        </div>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Form */}
         <div className="lg:col-span-2">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* DATOS BÁSICOS */}
+            {" "}
+            {/* DATOS DEL BONO */}
             <Card className="p-6 border-blue-300 bg-white shadow-sm">
               <div className="flex items-center gap-2 mb-6">
                 <Info className="w-5 h-5 text-blue-600" />
                 <h3 className="text-xl font-bold text-blue-900">
-                  Datos Básicos del Bono
+                  Datos del Bono
                 </h3>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -616,7 +778,6 @@ export default function BonoFormEnhanced() {
                 </div>
               </div>
             </Card>
-
             {/* CONDICIONES FINANCIERAS */}
             <Card className="p-6 border-green-300 bg-white shadow-sm">
               <div className="flex items-center gap-2 mb-6">
@@ -659,7 +820,6 @@ export default function BonoFormEnhanced() {
                     </p>
                   )}{" "}
                 </div>
-
                 {/* Switch para Tasa Dinámica */}
                 <div className="col-span-2 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
                   <div className="flex items-center justify-between">
@@ -691,18 +851,29 @@ export default function BonoFormEnhanced() {
                     />
                   </div>
                 </div>
-
                 {/* Tasa Fija o Dinámica */}
                 {!esTasaDinamica ? (
                   <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-gray-700">
+                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                       Tasa Anual *
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span tabIndex={0} className="cursor-help">
+                            <Info className="w-3 h-3 text-gray-400" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Tasa de interés anual. Rango válido: 0% - 100%</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </Label>
                     <div className="relative">
                       <Input
                         {...form.register("tasaAnual")}
                         type="number"
                         step="0.01"
+                        min="0"
+                        max="100"
                         placeholder="8.50"
                         className="border-gray-300 focus:border-blue-500 pr-8"
                       />
@@ -914,7 +1085,6 @@ export default function BonoFormEnhanced() {
                     </div>
                   </div>
                 )}
-
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-gray-700">
                     Frecuencia de Pago *
@@ -938,20 +1108,8 @@ export default function BonoFormEnhanced() {
                   >
                     <SelectTrigger className="border-gray-300 focus:border-blue-500">
                       <SelectValue placeholder="Frecuencia" />
-                    </SelectTrigger>
+                    </SelectTrigger>{" "}
                     <SelectContent>
-                      <SelectItem value="12">
-                        📅 Mensual (12 pagos/año)
-                      </SelectItem>
-                      <SelectItem value="6">
-                        📅 Bimestral (6 pagos/año)
-                      </SelectItem>
-                      <SelectItem value="4">
-                        📅 Trimestral (4 pagos/año)
-                      </SelectItem>
-                      <SelectItem value="3">
-                        📅 Cuatrimestral (3 pagos/año)
-                      </SelectItem>
                       <SelectItem value="2">
                         📅 Semestral (2 pagos/año)
                       </SelectItem>
@@ -965,7 +1123,6 @@ export default function BonoFormEnhanced() {
                     </p>
                   )}
                 </div>
-
                 {tipoTasa === "Nominal" && (
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-gray-700">
@@ -979,23 +1136,27 @@ export default function BonoFormEnhanced() {
                     >
                       <SelectTrigger className="border-gray-300 focus:border-blue-500">
                         <SelectValue placeholder="Capitalización" />
-                      </SelectTrigger>
+                      </SelectTrigger>{" "}
                       <SelectContent>
-                        <SelectItem value="360">🔄 Diaria</SelectItem>
-                        <SelectItem value="12">🔄 Mensual</SelectItem>
-                        <SelectItem value="6">🔄 Bimestral</SelectItem>
-                        <SelectItem value="4">🔄 Trimestral</SelectItem>
-                        <SelectItem value="3">🔄 Cuatrimestral</SelectItem>
                         <SelectItem value="2">🔄 Semestral</SelectItem>
                         <SelectItem value="1">🔄 Anual</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                )}
-
+                )}{" "}
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-gray-700">
+                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                     Plazo (años) *
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={0} className="cursor-help">
+                          <Info className="w-3 h-3 text-gray-400" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Duración del bono. Rango válido: 1 - 30 años</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </Label>
                   <Input
                     {...form.register("plazo")}
@@ -1014,7 +1175,6 @@ export default function BonoFormEnhanced() {
                 </div>
               </div>
             </Card>
-
             {/* CONDICIONES DE GRACIA */}
             <Card className="p-6 border-orange-300 bg-white shadow-sm">
               <div className="flex items-center gap-2 mb-6">
@@ -1082,21 +1242,42 @@ export default function BonoFormEnhanced() {
                   </div>
                 )}
               </div>
-            </Card>
-
-            {/* COMISIONES */}
+            </Card>{" "}
+            {/* COSTOS DEL EMISOR */}
             <Card className="p-6 border-purple-300 bg-white shadow-sm">
               <div className="flex items-center gap-2 mb-6">
                 <Calculator className="w-5 h-5 text-purple-600" />
                 <h3 className="text-xl font-bold text-purple-900">
-                  Comisiones y Costos
+                  Costos del Emisor
                 </h3>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertCircle className="w-4 h-4 text-purple-400 cursor-pointer" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      Costos asociados con la estructuración, colocación y
+                      administración del bono
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-3 gap-6">
+                {" "}
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-gray-700">
-                    Comisión del Emisor (%) *
+                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    Estructuración (%) *
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={0} className="cursor-help">
+                          <Info className="w-3 h-3 text-gray-400" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Comisión del emisor. Rango válido: 0% - 10%</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </Label>
                   <div className="relative">
                     <Input
@@ -1104,6 +1285,7 @@ export default function BonoFormEnhanced() {
                       type="number"
                       step="0.01"
                       min="0"
+                      max="10"
                       placeholder="0.50"
                       className="border-gray-300 focus:border-blue-500 pr-8"
                     />
@@ -1118,17 +1300,28 @@ export default function BonoFormEnhanced() {
                     </p>
                   )}
                 </div>
-
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-gray-700">
-                    Comisión del Bonista (%) *
+                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    Colocación (%) *
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={0} className="cursor-help">
+                          <Info className="w-3 h-3 text-gray-400" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Comisión del bonista. Rango válido: 0% - 10%</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </Label>
                   <div className="relative">
+                    {" "}
                     <Input
                       {...form.register("comisionBonista")}
                       type="number"
                       step="0.01"
                       min="0"
+                      max="10"
                       placeholder="0.25"
                       className="border-gray-300 focus:border-blue-500 pr-8"
                     />
@@ -1143,14 +1336,137 @@ export default function BonoFormEnhanced() {
                     </p>
                   )}
                 </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700">
+                    CAVALI (%)
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      defaultValue="0.50"
+                      disabled
+                      className="bg-gray-100 text-gray-600 border-gray-300 pr-8"
+                    />
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
+                      %
+                    </span>
+                  </div>{" "}
+                  <p className="text-xs text-gray-500">
+                    Valor fijo establecido por CAVALI
+                  </p>
+                </div>
               </div>
             </Card>
+            {/* RESULTADOS DEL EMISOR */}
+            <Card className="p-6 border-green-300 bg-white shadow-sm">
+              <div className="flex items-center gap-2 mb-6">
+                <TrendingUp className="w-5 h-5 text-green-600" />
+                <h3 className="text-xl font-bold text-green-900">
+                  Resultados del Emisor
+                </h3>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertCircle className="w-4 h-4 text-green-400 cursor-pointer" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Tasa de Costo Efectiva Anual que asume el emisor</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
 
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                <div className="text-center">
+                  <div className="text-sm text-green-600 mb-1">
+                    TCEA (Emisor)
+                  </div>
+                  <div className="text-2xl font-bold text-green-700">
+                    {calculatedMetrics
+                      ? `${calculatedMetrics.tcea.toFixed(4)}%`
+                      : "--.--%"}
+                  </div>
+                  <div className="text-xs text-green-600 mt-1">
+                    Incluye todos los costos del emisor
+                  </div>
+                </div>
+              </div>
+            </Card>
+            {/* RESULTADOS DEL BONISTA */}
+            <Card className="p-6 border-indigo-300 bg-white shadow-sm">
+              <div className="flex items-center gap-2 mb-6">
+                <BarChart3 className="w-5 h-5 text-indigo-600" />
+                <h3 className="text-xl font-bold text-indigo-900">
+                  Resultados del Bonista
+                </h3>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertCircle className="w-4 h-4 text-indigo-400 cursor-pointer" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Tasas de rendimiento efectivo para el inversionista</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+                  <div className="text-center">
+                    <div className="text-sm text-indigo-600 mb-1">
+                      TREA (Bonista)
+                    </div>
+                    <div className="text-2xl font-bold text-indigo-700">
+                      {calculatedMetrics
+                        ? `${calculatedMetrics.trea.toFixed(4)}%`
+                        : "--.--%"}
+                    </div>
+                    <div className="text-xs text-indigo-600 mt-1">
+                      Rendimiento efectivo anual
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                  <div className="text-center">
+                    <div className="text-sm text-yellow-600 mb-1">CAVALI</div>
+                    <div className="text-xl font-bold text-yellow-700">
+                      0.50%
+                    </div>
+                    <div className="text-xs text-yellow-600 mt-1">
+                      Comisión fija de registro
+                    </div>
+                  </div>
+                </div>
+              </div>{" "}
+            </Card>
+            {/* VALIDATION SUMMARY */}
+            {Object.keys(form.formState.errors).length > 0 && (
+              <Card className="p-4 border-red-200 bg-red-50">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                  <div>
+                    <h3 className="text-sm font-semibold text-red-800 mb-2">
+                      Por favor, corrige los siguientes errores:
+                    </h3>
+                    <ul className="text-sm text-red-700 space-y-1">
+                      {Object.entries(form.formState.errors).map(
+                        ([field, error]) => (
+                          <li key={field} className="flex items-center gap-2">
+                            <span className="w-1 h-1 bg-red-600 rounded-full"></span>
+                            {error?.message || `Error en ${field}`}
+                          </li>
+                        )
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </Card>
+            )}
             {/* SUBMIT BUTTON */}
             <div className="flex justify-end pt-6">
               <Button
                 type="submit"
-                disabled={isSubmitting || completionPercentage < 100}
+                disabled={
+                  isSubmitting ||
+                  completionPercentage < 100 ||
+                  Object.keys(form.formState.errors).length > 0
+                }
                 className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-lg shadow-lg transform transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 {isSubmitting ? (
@@ -1475,33 +1791,9 @@ export default function BonoFormEnhanced() {
                 )}
               </Card>
             )}
-          </div>
+          </div>{" "}
         </div>
       </div>
-
-      {/* Información educativa sobre frecuencia */}
-      {watchedValues.frecuenciaPago && (
-        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="text-xs text-blue-800">
-            <strong>Método Francés:</strong> Con{" "}
-            {frequencyLabels[watchedValues.frecuenciaPago]?.toLowerCase()},
-            tendrás{" "}
-            {parseInt(watchedValues.frecuenciaPago) *
-              parseInt(watchedValues.plazo || "1")}{" "}
-            cuotas constantes de{" "}
-            {calculatedMetrics ? (
-              <span className="font-mono font-semibold">
-                {watchedValues.moneda}{" "}
-                {calculatedMetrics.cuotaConstante.toLocaleString("es-PE", {
-                  minimumFractionDigits: 2,
-                })}
-              </span>
-            ) : (
-              "cantidad a calcular"
-            )}
-          </div>
-        </div>
-      )}
 
       {/* INFORMACIÓN MÉTODO FRANCÉS */}
       <Card className="p-6 border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50 shadow-sm">

@@ -1,5 +1,5 @@
-import BonoFormEnhanced from "@/components/ui/BonoFormEnhanced";
-import ProtectedRoute from "@/components/RouteGuard";
+import BonoFormEnhanced from "@/components/bonos/BonoFormEnhanced";
+import ProtectedRoute from "@/components/auth/RouteGuard";
 
 export default function RegistroBonoPage() {
   return (

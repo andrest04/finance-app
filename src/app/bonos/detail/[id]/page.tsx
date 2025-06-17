@@ -7,7 +7,7 @@ import { db } from "@/lib/firebase";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { Button } from "@/components/ui/button";
 import type { BonoData } from "@/lib/bonoUtils";
-import ProtectedRoute from "@/components/RouteGuard";
+import ProtectedRoute from "@/components/auth/RouteGuard";
 import { Info } from "lucide-react";
 import {
   Tooltip,
@@ -24,7 +24,6 @@ import { calcularFlujoFrances } from "@/lib/francesMetod";
 import { calcularTCEABono, calcularTREABono } from "@/lib/bonoUtils";
 import {
   calcularPrecioBonoDesdeBono,
-  interpretarPrecioBono,
   type PrecioBonoResult,
 } from "@/lib/precioBonoCalculator";
 
@@ -33,7 +32,6 @@ export default function DetalleBonoPage() {
   const { id } = useParams();
   const router = useRouter();
   const [bono, setBono] = useState<BonoData | null>(null);
-
   const etiquetasBonito: { [key: string]: string } = {
     nombre: "Nombre del Bono",
     valorNominal: "Valor Nominal (VN)",
@@ -44,30 +42,29 @@ export default function DetalleBonoPage() {
     frecuenciaCapitalizacion: "Frecuencia de Capitalización",
     plazo: "Plazo (años)",
     tipoGracia: "Tipo de Gracia",
-    nGracia: "N° Periodos de Gracia",
+    nGracia: "N° Períodos de Gracia",
     fechaEmision: "Fecha de Emisión",
-    comisionEmisor: "Comisión del Emisor (%)",
-    comisionBonista: "Comisión del Bonista (%)",
-    tasaMercado: "Tasa de Mercado (TREA)",
+    comisionEmisor: "Comisión de Estructuración (%)",
+    comisionBonista: "Comisión de Colocación (%)",
     creadoEn: "Fecha de Registro",
   };
-
   const secciones: { [key: string]: string[] } = {
-    "Datos Básicos": [
+    "Datos del Bono": [
       "nombre",
-      "moneda",
       "valorNominal",
+      "moneda",
       "plazo",
       "fechaEmision",
     ],
-    "Tasa y Frecuencia": [
+    "Condiciones Financieras": [
       "tipoTasa",
       "tasaAnual",
       "frecuenciaPago",
       "frecuenciaCapitalizacion",
+      "tipoGracia",
+      "nGracia",
     ],
-    "Plazo y Gracia": ["tipoGracia", "nGracia"],
-    "Costos y Mercado": ["comisionEmisor", "comisionBonista", "tasaMercado"],
+    Costos: ["comisionEmisor", "comisionBonista"],
   };
   // Mapeo de frecuencias para mejor legibilidad
   const frecuenciaTexto: { [key: string]: string } = {
@@ -116,11 +113,9 @@ export default function DetalleBonoPage() {
       }
     });
   }, [firebaseUser, id, router, profile]);
-
   // --- Indicadores financieros: duración, duración modificada, convexidad, precio y TCEA ---
   let indicadores = null;
   let precioBono: PrecioBonoResult | null = null;
-  let interpretacion = null;
   let tcea = 0;
   let treaBono = 0;
   if (bono) {
@@ -144,7 +139,7 @@ export default function DetalleBonoPage() {
       periodo: f.periodo,
       flujo: f.cuota,
     }));
-    // Usar tasa de mercado como tasa de descuento (en decimal por periodo)
+    // Usar tasa de rendimiento exigida como tasa de descuento (en decimal por periodo)
     const tasaPeriodo = bono.tasaMercado / 100 / bono.frecuenciaPago;
     indicadores = {
       duracion: calcularDuracion(flujos, tasaPeriodo),
@@ -152,9 +147,8 @@ export default function DetalleBonoPage() {
       convexidad: calcularConvexidad(flujos, tasaPeriodo),
     };
 
-    // Calcular precio del bono usando la tasa de mercado
+    // Calcular precio del bono usando la tasa de rendimiento exigida
     precioBono = calcularPrecioBonoDesdeBono(bono, bono.tasaMercado);
-    interpretacion = interpretarPrecioBono(precioBono);
 
     // Calcular TCEA y TREA
     tcea = calcularTCEABono(bono);
@@ -187,7 +181,6 @@ export default function DetalleBonoPage() {
             ← Volver a la lista
           </Button>
         </div>
-
         {Object.entries(secciones).map(([titulo, campos]) => (
           <section key={titulo} className="space-y-3">
             <div className="flex items-center gap-2">
@@ -333,9 +326,8 @@ export default function DetalleBonoPage() {
               })}
             </div>
           </section>
-        ))}
-
-        {/* Indicadores financieros */}
+        ))}{" "}
+        {/* Indicadores Financieros */}
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold text-blue-700">
@@ -348,12 +340,56 @@ export default function DetalleBonoPage() {
                 </span>
               </TooltipTrigger>
               <TooltipContent>
-                Duración, duración modificada y convexidad del bono calculadas
-                con el método francés y la TREA.
+                Indicadores clave del bono: TCEA, TREA, duración, convexidad y
+                precio máximo de mercado.
               </TooltipContent>
             </Tooltip>
           </div>
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {/* TCEA */}
+            <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
+              <div className="flex items-center gap-1 mb-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase">
+                  TCEA
+                </p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0} className="cursor-pointer">
+                      <Info className="w-3 h-3 text-gray-400" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Tasa de Coste Efectivo Anual del emisor incluyendo todas las
+                    comisiones.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <p className="text-base text-gray-800 font-mono">
+                {tcea.toFixed(4)}%
+              </p>
+            </div>
+            {/* TREA */}
+            <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
+              <div className="flex items-center gap-1 mb-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase">
+                  TREA
+                </p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0} className="cursor-pointer">
+                      <Info className="w-3 h-3 text-gray-400" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Tasa de Rendimiento Efectivo Anual del bonista incluyendo
+                    todas las comisiones.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <p className="text-base text-gray-800 font-mono">
+                {treaBono.toFixed(4)}%
+              </p>
+            </div>
             {/* Duración */}
             <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
               <div className="flex items-center gap-1 mb-1">
@@ -367,18 +403,13 @@ export default function DetalleBonoPage() {
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    Mide la sensibilidad del precio del bono ante cambios en la
-                    tasa de interés. Una duración mayor implica mayor riesgo
-                    ante subas de tasas.
+                    Sensibilidad del precio del bono ante cambios en la tasa de
+                    interés.
                   </TooltipContent>
                 </Tooltip>
               </div>
               <p className="text-base text-gray-800 font-mono">
-                {indicadores ? indicadores.duracion.toFixed(4) : "-"} años
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Indica el plazo promedio ponderado en que se recupera la
-                inversión.
+                {indicadores ? indicadores.duracion.toFixed(4) : "-"}
               </p>
             </div>
             {/* Duración Modificada */}
@@ -394,16 +425,13 @@ export default function DetalleBonoPage() {
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    Estima el cambio porcentual en el precio del bono ante una
-                    variación de 1% en la tasa de interés.
+                    Cambio porcentual en el precio del bono ante una variación
+                    de 1% en la tasa.
                   </TooltipContent>
                 </Tooltip>
               </div>
               <p className="text-base text-gray-800 font-mono">
-                {indicadores ? indicadores.duracionMod.toFixed(4) : "-"} años
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Útil para estimar la variación del precio ante cambios en tasas.
+                {indicadores ? indicadores.duracionMod.toFixed(4) : "-"}
               </p>
             </div>
             {/* Convexidad */}
@@ -419,56 +447,19 @@ export default function DetalleBonoPage() {
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    Mide la curvatura en la relación precio-tasa. Una mayor
-                    convexidad indica menor riesgo ante grandes movimientos de
-                    tasas.
+                    Curvatura en la relación precio-tasa del bono.
                   </TooltipContent>
                 </Tooltip>
               </div>
               <p className="text-base text-gray-800 font-mono">
                 {indicadores ? indicadores.convexidad.toFixed(4) : "-"}
               </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Complementa a la duración para medir el riesgo de tasa de
-                interés.
-              </p>{" "}
             </div>
-          </div>
-          <div className="text-xs text-gray-500 mt-2">
-            <span>
-              Estos indicadores ayudan a medir el riesgo y sensibilidad del bono
-              ante cambios en la tasa de interés.
-            </span>
-          </div>{" "}
-        </section>
-
-        {/* Valoración del Bono */}
-        <section className="space-y-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-blue-700">
-              Valoración del Bono
-            </h2>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span tabIndex={0} className="cursor-pointer">
-                  <Info className="w-4 h-4 text-blue-400" />
-                </span>
-              </TooltipTrigger>{" "}
-              <TooltipContent>
-                Precio máximo que estaría dispuesto a pagar el mercado por este
-                título valor, calculado descontando los flujos futuros a la tasa
-                de mercado. Incluye análisis de prima/descuento respecto al
-                valor nominal.
-              </TooltipContent>
-            </Tooltip>
-          </div>
-          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
-            {" "}
             {/* Precio Máximo de Mercado */}
             <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
               <div className="flex items-center gap-1 mb-1">
                 <p className="text-xs font-semibold text-gray-500 uppercase">
-                  Precio Máximo de Mercado
+                  Precio Máximo
                 </p>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -477,287 +468,28 @@ export default function DetalleBonoPage() {
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    Precio máximo que estaría dispuesto a pagar el mercado por
-                    este título valor. Se calcula como el valor presente de
-                    todos los flujos futuros del bono descontados a la tasa de
-                    mercado actual.
+                    Precio máximo de mercado del bono calculado por valor
+                    presente.
                   </TooltipContent>
                 </Tooltip>
               </div>
               <p className="text-base text-gray-800 font-mono">
-                {precioBono
-                  ? `${bono?.moneda} ${precioBono.precio.toLocaleString(
-                      "es-PE",
-                      { minimumFractionDigits: 2 }
-                    )}`
-                  : "-"}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Valor teórico de mercado del bono
-              </p>
-            </div>
-            {/* Valor Nominal */}
-            <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
-              <div className="flex items-center gap-1 mb-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase">
-                  Valor Nominal
-                </p>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span tabIndex={0} className="cursor-pointer">
-                      <Info className="w-3 h-3 text-gray-400" />
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Valor facial del bono que se pagará al vencimiento.
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <p className="text-base text-gray-800 font-mono">
-                {bono
-                  ? `${bono.moneda} ${bono.valorNominal.toLocaleString(
-                      "es-PE",
-                      { minimumFractionDigits: 2 }
-                    )}`
-                  : "-"}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">Valor al vencimiento</p>
-            </div>
-            {/* Prima/Descuento */}
-            <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
-              <div className="flex items-center gap-1 mb-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase">
-                  Prima/Descuento
-                </p>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span tabIndex={0} className="cursor-pointer">
-                      <Info className="w-3 h-3 text-gray-400" />
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Diferencia entre el precio actual y el valor nominal. Prima
-                    si es positivo, descuento si es negativo.
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <p
-                className={`text-base font-mono ${
-                  precioBono?.prima
-                    ? precioBono.prima > 0
-                      ? "text-green-700"
-                      : "text-red-700"
-                    : "text-gray-800"
-                }`}
-              >
-                {precioBono
-                  ? `${precioBono.prima > 0 ? "+" : ""}${
-                      bono?.moneda
-                    } ${precioBono.prima.toLocaleString("es-PE", {
-                      minimumFractionDigits: 2,
-                    })}`
-                  : "-"}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                {precioBono?.esObligacionPremium
-                  ? "Obligación Premium"
-                  : precioBono?.esObligacionDescuento
-                  ? "Obligación con Descuento"
-                  : "A la Par"}
-              </p>
-            </div>
-            {/* Porcentaje Prima */}
-            <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
-              <div className="flex items-center gap-1 mb-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase">
-                  % Prima/Descuento
-                </p>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span tabIndex={0} className="cursor-pointer">
-                      <Info className="w-3 h-3 text-gray-400" />
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Prima o descuento como porcentaje del valor nominal.
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <p
-                className={`text-base font-mono ${
-                  precioBono?.porcentajePrima
-                    ? precioBono.porcentajePrima > 0
-                      ? "text-green-700"
-                      : "text-red-700"
-                    : "text-gray-800"
-                }`}
-              >
-                {precioBono
-                  ? `${
-                      precioBono.porcentajePrima > 0 ? "+" : ""
-                    }${precioBono.porcentajePrima.toFixed(2)}%`
-                  : "-"}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Relativo al valor nominal
+                {precioBono ? `${precioBono.precio.toFixed(2)}` : "-"}
               </p>
             </div>
           </div>
-
-          {/* Interpretación del Precio */}
-          {precioBono && interpretacion && (
-            <div
-              className={`p-4 rounded-lg border ${
-                precioBono.esObligacionPremium
-                  ? "bg-green-50 border-green-200"
-                  : precioBono.esObligacionDescuento
-                  ? "bg-orange-50 border-orange-200"
-                  : "bg-blue-50 border-blue-200"
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <div
-                  className={`p-2 rounded-lg ${
-                    precioBono.esObligacionPremium
-                      ? "bg-green-100"
-                      : precioBono.esObligacionDescuento
-                      ? "bg-orange-100"
-                      : "bg-blue-100"
-                  }`}
-                >
-                  <Info
-                    className={`w-4 h-4 ${
-                      precioBono.esObligacionPremium
-                        ? "text-green-600"
-                        : precioBono.esObligacionDescuento
-                        ? "text-orange-600"
-                        : "text-blue-600"
-                    }`}
-                  />
-                </div>
-                <div className="flex-1">
-                  <h4
-                    className={`font-semibold text-sm ${
-                      precioBono.esObligacionPremium
-                        ? "text-green-800"
-                        : precioBono.esObligacionDescuento
-                        ? "text-orange-800"
-                        : "text-blue-800"
-                    }`}
-                  >
-                    {interpretacion.tipo}
-                  </h4>
-                  <p
-                    className={`text-sm mt-1 ${
-                      precioBono.esObligacionPremium
-                        ? "text-green-700"
-                        : precioBono.esObligacionDescuento
-                        ? "text-orange-700"
-                        : "text-blue-700"
-                    }`}
-                  >
-                    {interpretacion.descripcion}
-                  </p>
-                  <p
-                    className={`text-xs mt-2 ${
-                      precioBono.esObligacionPremium
-                        ? "text-green-600"
-                        : precioBono.esObligacionDescuento
-                        ? "text-orange-600"
-                        : "text-blue-600"
-                    }`}
-                  >
-                    💡 {interpretacion.recomendacion}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* Análisis de Costos y Rentabilidad */}
-        <section className="space-y-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-blue-700">
-              Análisis de Costos y Rentabilidad
-            </h2>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span tabIndex={0} className="cursor-pointer">
-                  <Info className="w-4 h-4 text-blue-400" />
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                Análisis desde la perspectiva del emisor (TCEA) y del
-                inversionista (TREA).
-              </TooltipContent>
-            </Tooltip>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            {/* TCEA */}
-            <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
-              <div className="flex items-center gap-1 mb-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase">
-                  TCEA (Tasa de Coste Efectivo Anual)
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+            <div className="flex items-start gap-2">
+              <Info className="w-4 h-4 text-blue-600 mt-0.5" />
+              <div>
+                <p className="text-sm text-blue-800 font-medium">
+                  CAVALI (Registro Central de Valores)
                 </p>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span tabIndex={0} className="cursor-pointer">
-                      <Info className="w-3 h-3 text-gray-400" />
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Tasa de coste efectivo anual desde el punto de vista del
-                    emisor. Incluye todas las comisiones y costos asociados a la
-                    emisión del bono.
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <p className="text-base text-gray-800 font-mono">
-                {tcea.toFixed(4)}%
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Costo real anual para el emisor considerando todas las
-                comisiones.
-              </p>
-            </div>
-            {/* TREA */}
-            <div className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white">
-              <div className="flex items-center gap-1 mb-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase">
-                  TREA (Tasa de Rendimiento Efectivo Anual)
+                <p className="text-xs text-blue-700 mt-1">
+                  Comisión fija: 0.50% del valor nominal
                 </p>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span tabIndex={0} className="cursor-pointer">
-                      <Info className="w-3 h-3 text-gray-400" />
-                    </span>
-                  </TooltipTrigger>{" "}
-                  <TooltipContent>
-                    Tasa de rendimiento efectivo anual calculada automáticamente
-                    desde el punto de vista del inversionista. Incluye todas las
-                    comisiones y costos del bonista, calculada usando el método
-                    francés.
-                  </TooltipContent>
-                </Tooltip>{" "}
               </div>
-              <p className="text-base text-gray-800 font-mono">
-                {treaBono.toFixed(4)}%
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Rendimiento real anual para el inversionista considerando
-                comisiones.
-              </p>
             </div>
-          </div>
-          <div className="text-xs text-gray-500 mt-2">
-            {" "}
-            <span>
-              La TCEA muestra el costo real del financiamiento para el emisor,
-              mientras que la TREA muestra el rendimiento real para el
-              inversionista. Ambas tasas se calculan automáticamente
-              considerando todas las comisiones.
-            </span>
           </div>
         </section>
       </main>

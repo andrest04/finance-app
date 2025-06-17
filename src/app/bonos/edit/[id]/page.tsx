@@ -64,7 +64,7 @@ export default function EditarBonoPage() {
       comisionBonista: parseFloat(String(form.comisionBonista)),
     } as BonoData;
 
-    // Calcular automáticamente la tasa de mercado (TREA)
+    // Calcular automáticamente la tasa de rendimiento exigida (TREA)
     try {
       updatedData.tasaMercado = calcularTREABono(updatedData);
     } catch (error) {
@@ -269,17 +269,17 @@ export default function EditarBonoPage() {
               type="number"
               value={form.comisionBonista ?? ""}
               onChange={handleChange}
-            />
+            />{" "}
           </div>{" "}
           <div>
-            <Label>Tasa de Mercado (TREA)</Label>
+            <Label>Tasa de Rendimiento Exigida (%)</Label>
             <div className="space-y-2">
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
                 <p className="text-sm text-blue-700 font-medium">
                   📊 Valor actual: {form.tasaMercado?.toFixed(4) || "0.0000"}%
                 </p>
                 <p className="text-xs text-blue-600 mt-1">
-                  Se recalculará automáticamente al guardar cambios
+                  Se recalculará automáticamente al guardar cambios (TREA)
                 </p>
               </div>
             </div>
