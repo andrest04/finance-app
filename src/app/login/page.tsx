@@ -4,7 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
-import { saveUserData, getUserData } from "@/lib/userUtils";
+import {
+  saveUserData,
+  getUserData,
+  handleOrphanedUser,
+  isUserProfileComplete,
+} from "@/lib/userUtils";
 import { getErrorMessage } from "@/lib/errorMessages";
 import Link from "next/link";
 
@@ -13,7 +18,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -23,19 +27,33 @@ export default function LoginPage() {
         email,
         password
       );
-      console.log("Login successful, saving user data");
-      await saveUserData(userCredential.user);
-      console.log("Fetching user data");
-      const userData = await getUserData(userCredential.user.uid);
-      console.log("User data retrieved:", userData);
+      console.log("Login successful, checking user data");
+
+      // Check if user exists in Firestore and handle orphaned users
+      let userData = await getUserData(userCredential.user.uid);
 
       if (!userData) {
-        console.error("No user data found after login");
+        console.log("User not found in Firestore, handling orphaned user...");
+        userData = await handleOrphanedUser(userCredential.user);
+      }
+
+      if (!userData) {
+        console.error("Failed to create/retrieve user data");
         setError(
-          "Error al cargar los datos del usuario. Por favor, intenta de nuevo."
+          "Error al crear el perfil de usuario. Por favor, contacta al administrador."
         );
         return;
       }
+
+      // Check if user profile is complete
+      if (!isUserProfileComplete(userData)) {
+        console.log("User profile incomplete, redirecting to role selection");
+        router.push("/select-role");
+        return;
+      }
+
+      // Update last login
+      await saveUserData(userCredential.user);
 
       // Esperar un momento para asegurar que el estado de autenticación se actualice
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -60,13 +78,26 @@ export default function LoginPage() {
       const result = await signInWithPopup(auth, googleProvider);
       console.log("Login con Google exitoso:", result.user.displayName);
 
-      await saveUserData(result.user);
-      const userData = await getUserData(result.user.uid);
+      // Check if user exists in Firestore and handle orphaned users
+      let userData = await getUserData(result.user.uid);
 
-      if (!userData?.role) {
+      if (!userData) {
+        console.log(
+          "Google user not found in Firestore, handling orphaned user..."
+        );
+        userData = await handleOrphanedUser(result.user);
+      }
+
+      if (!userData || !isUserProfileComplete(userData)) {
+        console.log(
+          "Google user profile incomplete, redirecting to role selection"
+        );
         router.push("/select-role");
         return;
       }
+
+      // Update last login
+      await saveUserData(result.user);
 
       if (userData.role === "emisor") {
         router.push("/emisor/dashboard");
