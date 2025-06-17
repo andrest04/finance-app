@@ -48,7 +48,7 @@ export default function DetalleBonoPage() {
     fechaEmision: "Fecha de Emisión",
     comisionEmisor: "Comisión del Emisor (%)",
     comisionBonista: "Comisión del Bonista (%)",
-    tasaMercado: "Tasa de Mercado (TREA)",
+    tasaMercado: "Tasa de Rendimiento Exigida (%)",
     creadoEn: "Fecha de Registro",
   };
 
@@ -67,7 +67,11 @@ export default function DetalleBonoPage() {
       "frecuenciaCapitalizacion",
     ],
     "Plazo y Gracia": ["tipoGracia", "nGracia"],
-    "Costos y Mercado": ["comisionEmisor", "comisionBonista", "tasaMercado"],
+    "Costos y Rendimiento": [
+      "comisionEmisor",
+      "comisionBonista",
+      "tasaMercado",
+    ],
   };
   // Mapeo de frecuencias para mejor legibilidad
   const frecuenciaTexto: { [key: string]: string } = {
@@ -144,7 +148,7 @@ export default function DetalleBonoPage() {
       periodo: f.periodo,
       flujo: f.cuota,
     }));
-    // Usar tasa de mercado como tasa de descuento (en decimal por periodo)
+    // Usar tasa de rendimiento exigida como tasa de descuento (en decimal por periodo)
     const tasaPeriodo = bono.tasaMercado / 100 / bono.frecuenciaPago;
     indicadores = {
       duracion: calcularDuracion(flujos, tasaPeriodo),
@@ -152,7 +156,7 @@ export default function DetalleBonoPage() {
       convexidad: calcularConvexidad(flujos, tasaPeriodo),
     };
 
-    // Calcular precio del bono usando la tasa de mercado
+    // Calcular precio del bono usando la tasa de rendimiento exigida
     precioBono = calcularPrecioBonoDesdeBono(bono, bono.tasaMercado);
     interpretacion = interpretarPrecioBono(precioBono);
 
