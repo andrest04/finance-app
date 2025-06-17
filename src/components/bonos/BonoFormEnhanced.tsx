@@ -493,12 +493,13 @@ export default function BonoFormEnhanced() {
         {/* Main Form */}
         <div className="lg:col-span-2">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* DATOS BÁSICOS */}
+            {" "}
+            {/* DATOS DEL BONO */}
             <Card className="p-6 border-blue-300 bg-white shadow-sm">
               <div className="flex items-center gap-2 mb-6">
                 <Info className="w-5 h-5 text-blue-600" />
                 <h3 className="text-xl font-bold text-blue-900">
-                  Datos Básicos del Bono
+                  Datos del Bono
                 </h3>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -616,7 +617,6 @@ export default function BonoFormEnhanced() {
                 </div>
               </div>
             </Card>
-
             {/* CONDICIONES FINANCIERAS */}
             <Card className="p-6 border-green-300 bg-white shadow-sm">
               <div className="flex items-center gap-2 mb-6">
@@ -1014,7 +1014,6 @@ export default function BonoFormEnhanced() {
                 </div>
               </div>
             </Card>
-
             {/* CONDICIONES DE GRACIA */}
             <Card className="p-6 border-orange-300 bg-white shadow-sm">
               <div className="flex items-center gap-2 mb-6">
@@ -1082,21 +1081,31 @@ export default function BonoFormEnhanced() {
                   </div>
                 )}
               </div>
-            </Card>
-
-            {/* COMISIONES */}
+            </Card>{" "}
+            {/* COSTOS DEL EMISOR */}
             <Card className="p-6 border-purple-300 bg-white shadow-sm">
               <div className="flex items-center gap-2 mb-6">
                 <Calculator className="w-5 h-5 text-purple-600" />
                 <h3 className="text-xl font-bold text-purple-900">
-                  Comisiones y Costos
+                  Costos del Emisor
                 </h3>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertCircle className="w-4 h-4 text-purple-400 cursor-pointer" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      Costos asociados con la estructuración, colocación y
+                      administración del bono
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-gray-700">
-                    Comisión del Emisor (%) *
+                    Estructuración (%) *
                   </Label>
                   <div className="relative">
                     <Input
@@ -1121,7 +1130,7 @@ export default function BonoFormEnhanced() {
 
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-gray-700">
-                    Comisión del Bonista (%) *
+                    Colocación (%) *
                   </Label>
                   <div className="relative">
                     <Input
@@ -1143,9 +1152,107 @@ export default function BonoFormEnhanced() {
                     </p>
                   )}
                 </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700">
+                    CAVALI (%)
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      defaultValue="0.50"
+                      disabled
+                      className="bg-gray-100 text-gray-600 border-gray-300 pr-8"
+                    />
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
+                      %
+                    </span>
+                  </div>{" "}
+                  <p className="text-xs text-gray-500">
+                    Valor fijo establecido por CAVALI
+                  </p>
+                </div>
               </div>
             </Card>
+            {/* RESULTADOS DEL EMISOR */}
+            <Card className="p-6 border-green-300 bg-white shadow-sm">
+              <div className="flex items-center gap-2 mb-6">
+                <TrendingUp className="w-5 h-5 text-green-600" />
+                <h3 className="text-xl font-bold text-green-900">
+                  Resultados del Emisor
+                </h3>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertCircle className="w-4 h-4 text-green-400 cursor-pointer" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Tasa de Costo Efectiva Anual que asume el emisor</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
 
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                <div className="text-center">
+                  <div className="text-sm text-green-600 mb-1">
+                    TCEA (Emisor)
+                  </div>
+                  <div className="text-2xl font-bold text-green-700">
+                    {calculatedMetrics
+                      ? `${calculatedMetrics.tcea.toFixed(4)}%`
+                      : "--.--%"}
+                  </div>
+                  <div className="text-xs text-green-600 mt-1">
+                    Incluye todos los costos del emisor
+                  </div>
+                </div>
+              </div>
+            </Card>
+            {/* RESULTADOS DEL BONISTA */}
+            <Card className="p-6 border-indigo-300 bg-white shadow-sm">
+              <div className="flex items-center gap-2 mb-6">
+                <BarChart3 className="w-5 h-5 text-indigo-600" />
+                <h3 className="text-xl font-bold text-indigo-900">
+                  Resultados del Bonista
+                </h3>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertCircle className="w-4 h-4 text-indigo-400 cursor-pointer" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Tasas de rendimiento efectivo para el inversionista</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+                  <div className="text-center">
+                    <div className="text-sm text-indigo-600 mb-1">
+                      TREA (Bonista)
+                    </div>
+                    <div className="text-2xl font-bold text-indigo-700">
+                      {calculatedMetrics
+                        ? `${calculatedMetrics.trea.toFixed(4)}%`
+                        : "--.--%"}
+                    </div>
+                    <div className="text-xs text-indigo-600 mt-1">
+                      Rendimiento efectivo anual
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                  <div className="text-center">
+                    <div className="text-sm text-yellow-600 mb-1">CAVALI</div>
+                    <div className="text-xl font-bold text-yellow-700">
+                      0.50%
+                    </div>
+                    <div className="text-xs text-yellow-600 mt-1">
+                      Comisión fija de registro
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
             {/* SUBMIT BUTTON */}
             <div className="flex justify-end pt-6">
               <Button
@@ -1475,33 +1582,9 @@ export default function BonoFormEnhanced() {
                 )}
               </Card>
             )}
-          </div>
+          </div>{" "}
         </div>
       </div>
-
-      {/* Información educativa sobre frecuencia */}
-      {watchedValues.frecuenciaPago && (
-        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="text-xs text-blue-800">
-            <strong>Método Francés:</strong> Con{" "}
-            {frequencyLabels[watchedValues.frecuenciaPago]?.toLowerCase()},
-            tendrás{" "}
-            {parseInt(watchedValues.frecuenciaPago) *
-              parseInt(watchedValues.plazo || "1")}{" "}
-            cuotas constantes de{" "}
-            {calculatedMetrics ? (
-              <span className="font-mono font-semibold">
-                {watchedValues.moneda}{" "}
-                {calculatedMetrics.cuotaConstante.toLocaleString("es-PE", {
-                  minimumFractionDigits: 2,
-                })}
-              </span>
-            ) : (
-              "cantidad a calcular"
-            )}
-          </div>
-        </div>
-      )}
 
       {/* INFORMACIÓN MÉTODO FRANCÉS */}
       <Card className="p-6 border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50 shadow-sm">
