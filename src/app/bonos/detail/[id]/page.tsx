@@ -7,7 +7,7 @@ import { db } from "@/lib/firebase";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { Button } from "@/components/ui/button";
 import type { BonoData } from "@/lib/bonoUtils";
-import ProtectedRoute from "@/components/RouteGuard";
+import ProtectedRoute from "@/components/auth/RouteGuard";
 import { Info } from "lucide-react";
 import {
   Tooltip,

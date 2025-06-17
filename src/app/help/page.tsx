@@ -6,7 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import ProtectedRoute from "@/components/RouteGuard";
+import ProtectedRoute from "@/components/auth/RouteGuard";
 
 const faqs = [
   // Conceptos Básicos

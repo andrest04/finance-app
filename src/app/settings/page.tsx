@@ -15,7 +15,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { Loader2 } from "lucide-react";
-import ProtectedRoute from "@/components/RouteGuard";
+import ProtectedRoute from "@/components/auth/RouteGuard";
 
 export default function SettingsPage() {
   const { firebaseUser } = useCurrentUser();

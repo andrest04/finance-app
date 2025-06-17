@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import ComparadorBonos from "@/components/ui/ComparadorBonos";
+import ComparadorBonos from "@/components/bonos/ComparadorBonos";
 import TablaFlujosCaja from "@/components/bonos/TablaFlujosCaja";
-import ProtectedRoute from "@/components/RouteGuard";
+import ProtectedRoute from "@/components/auth/RouteGuard";
 import { Card } from "@/components/ui/card";
 import type { BonoData } from "@/lib/bonoUtils";
 import Link from "next/link";

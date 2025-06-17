@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import ProtectedRoute from "@/components/RouteGuard";
+import ProtectedRoute from "@/components/auth/RouteGuard";
 import {
   Calculator,
   BookOpen,
