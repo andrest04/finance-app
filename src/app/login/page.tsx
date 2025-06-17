@@ -14,12 +14,14 @@ import { getErrorMessage } from "@/lib/errorMessages";
 import Link from "next/link";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
+  const router = useRouter();  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const handleSubmit = async (e: React.FormEvent) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError("");
     try {
       console.log("Attempting login with email:", email);
       const userCredential = await signInWithEmailAndPassword(
@@ -68,10 +70,12 @@ export default function LoginPage() {
     } catch (error: unknown) {
       console.error("Login error:", error);
       setError(getErrorMessage(error));
+    } finally {
+      setIsLoading(false);
     }
-  };
-  const handleGoogleLogin = async () => {
+  };  const handleGoogleLogin = async () => {
     try {
+      setIsGoogleLoading(true);
       setError(""); // Limpiar errores previos
       console.log("Iniciando login con Google...");
 
@@ -129,6 +133,8 @@ export default function LoginPage() {
       } else {
         setError(getErrorMessage(error));
       }
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -159,46 +165,68 @@ export default function LoginPage() {
             <div className="text-sm text-red-600 bg-red-100 p-2 rounded-md text-center">
               {error}
             </div>
-          )}
-          <button
+          )}          <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-full transition"
+            disabled={isLoading}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-medium py-2 rounded-full transition flex items-center justify-center gap-2"
           >
-            Entrar
+            {isLoading ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Iniciando sesión...
+              </>
+            ) : (
+              "Entrar"
+            )}
           </button>
         </form>
         <div className="my-4 flex items-center">
           <div className="flex-grow h-px bg-gray-200" />
           <span className="mx-2 text-gray-400 text-xs">o</span>
           <div className="flex-grow h-px bg-gray-200" />
-        </div>
-        <button
+        </div>        <button
           type="button"
           onClick={handleGoogleLogin}
-          className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium py-2 rounded-full transition"
+          disabled={isGoogleLoading}
+          className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 hover:bg-gray-100 disabled:bg-gray-50 disabled:cursor-not-allowed text-gray-700 font-medium py-2 rounded-full transition"
         >
-          <svg className="w-5 h-5" viewBox="0 0 48 48">
-            <g>
-              <path
-                fill="#4285F4"
-                d="M24 9.5c3.54 0 6.7 1.22 9.19 3.61l6.85-6.85C36.45 2.36 30.7 0 24 0 14.82 0 6.73 5.38 2.69 13.19l7.98 6.2C12.12 13.13 17.62 9.5 24 9.5z"
-              />
-              <path
-                fill="#34A853"
-                d="M46.1 24.55c0-1.64-.15-3.22-.43-4.74H24v9.01h12.41c-.54 2.91-2.18 5.38-4.65 7.04l7.19 5.6C43.93 37.01 46.1 31.32 46.1 24.55z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M10.67 28.39c-1.08-3.21-1.08-6.67 0-9.88l-7.98-6.2C.89 16.41 0 20.09 0 24c0 3.91.89 7.59 2.69 11.19l7.98-6.2z"
-              />
-              <path
-                fill="#EA4335"
-                d="M24 48c6.7 0 12.45-2.21 16.59-6.01l-7.19-5.6c-2.01 1.35-4.59 2.15-7.4 2.15-6.38 0-11.88-3.63-14.33-8.89l-7.98 6.2C6.73 42.62 14.82 48 24 48z"
-              />
-              <path fill="none" d="M0 0h48v48H0z" />
-            </g>
-          </svg>
-          Iniciar sesión con Google
+          {isGoogleLoading ? (
+            <>
+              <svg className="animate-spin h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Iniciando sesión con Google...
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5" viewBox="0 0 48 48">
+                <g>
+                  <path
+                    fill="#4285F4"
+                    d="M24 9.5c3.54 0 6.7 1.22 9.19 3.61l6.85-6.85C36.45 2.36 30.7 0 24 0 14.82 0 6.73 5.38 2.69 13.19l7.98 6.2C12.12 13.13 17.62 9.5 24 9.5z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M46.1 24.55c0-1.64-.15-3.22-.43-4.74H24v9.01h12.41c-.54 2.91-2.18 5.38-4.65 7.04l7.19 5.6C43.93 37.01 46.1 31.32 46.1 24.55z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M10.67 28.39c-1.08-3.21-1.08-6.67 0-9.88l-7.98-6.2C.89 16.41 0 20.09 0 24c0 3.91.89 7.59 2.69 11.19l7.98-6.2z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M24 48c6.7 0 12.45-2.21 16.59-6.01l-7.19-5.6c-2.01 1.35-4.59 2.15-7.4 2.15-6.38 0-11.88-3.63-14.33-8.89l-7.98 6.2C6.73 42.62 14.82 48 24 48z"
+                  />
+                  <path fill="none" d="M0 0h48v48H0z" />
+                </g>
+              </svg>
+              Iniciar sesión con Google
+            </>
+          )}
         </button>
         <p className="text-center text-sm text-gray-600 mt-4">
           ¿No tienes una cuenta?{" "}
