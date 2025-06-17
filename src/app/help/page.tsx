@@ -33,9 +33,15 @@ const faqs = [
       "El valor de un bono se calcula descontando los flujos futuros de efectivo (cupones y principal) a una tasa de descuento apropiada. La fórmula básica considera el valor nominal, la tasa de cupón, la frecuencia de pago y el plazo hasta el vencimiento.",
   },
   {
-    question: "¿Qué es la tasa de mercado (TREA)?",
+    question: "¿Qué es la Tasa de Rendimiento Exigida?",
     answer:
-      "La Tasa de Rendimiento Efectiva Anual (TREA) es la tasa que representa el rendimiento real que obtendrá el inversor, considerando todos los costos y comisiones asociados con la inversión.",
+      "La Tasa de Rendimiento Exigida es la tasa de descuento que el mercado utiliza para evaluar el bono. Es la tasa mínima de rendimiento que los inversionistas esperan recibir por asumir el riesgo de la inversión. Se utiliza para calcular el precio teórico del bono descontando los flujos futuros.",
+  },
+  {
+    question:
+      "¿Cuál es la diferencia entre Tasa de Rendimiento Exigida y TREA?",
+    answer:
+      "La Tasa de Rendimiento Exigida es una tasa de entrada (input) que representa lo que el mercado exige por el riesgo. La TREA (Tasa de Rendimiento Efectiva Anual) es un resultado calculado que muestra el rendimiento real que obtiene el inversionista considerando el precio pagado y todos los costos asociados.",
   },
   {
     question: "¿Qué es la TIR y cómo se interpreta?",
