@@ -1,8 +1,7 @@
 /**
  * Cálculo del Precio del Bono (Valor Actual del Bono)
- *
- * El precio del bono es el valor presente de todos los flujos de caja futuros
- * (cupones y amortización) descontados a una tasa de mercado adecuada.
+ * * El precio del bono es el valor presente de todos los flujos de caja futuros
+ * (cupones y amortización) descontados a una tasa de rendimiento exigida.
  */
 
 import { calcularFlujoFrances, type BonoParams } from "./francesMetod";
@@ -15,7 +14,7 @@ export interface PrecioBonoParams {
   plazo: number;
   gracia: "Ninguno" | "Total" | "Parcial";
   numPeriodosGracia: number;
-  tasaDescuento: number; // Tasa de mercado para descontar
+  tasaDescuento: number; // Tasa de rendimiento exigida para descontar
 }
 
 export interface PrecioBonoResult {
@@ -203,13 +202,13 @@ export function interpretarPrecioBono(resultado: PrecioBonoResult): {
         2
       )}% por debajo de su valor nominal`,
       recomendacion:
-        "El bono ofrece una tasa cupón menor que las tasas de mercado actuales",
+        "El bono ofrece una tasa cupón menor que las tasas de rendimiento exigidas actuales",
     };
   } else {
     return {
       tipo: "Obligación a la Par",
       descripcion: "El bono cotiza a su valor nominal",
-      recomendacion: "La tasa cupón es igual a la tasa de mercado",
+      recomendacion: "La tasa cupón es igual a la tasa de rendimiento exigida",
     };
   }
 }
