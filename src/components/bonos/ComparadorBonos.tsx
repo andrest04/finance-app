@@ -28,7 +28,7 @@ const campos = [
   { key: "fechaEmision", label: "Fecha de Emisión" },
   { key: "comisionEmisor", label: "Comisión Emisor (%)" },
   { key: "comisionBonista", label: "Comisión Bonista (%)" },
-  { key: "tasaMercado", label: "TREA (%)" },
+  { key: "tasaMercado", label: "Tasa Rendimiento Exigida (%)" },
 ];
 
 function formatDate(date: string | { seconds: number }) {
