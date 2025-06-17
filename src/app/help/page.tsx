@@ -1,12 +1,12 @@
 "use client";
 
+import ProtectedRoute from "@/components/auth/RouteGuard";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import ProtectedRoute from "@/components/auth/RouteGuard";
 
 const faqs = [
   // Conceptos Básicos
