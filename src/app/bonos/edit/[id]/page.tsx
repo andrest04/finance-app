@@ -55,9 +55,6 @@ export default function EditarBonoPage() {
       valorNominal: parseFloat(String(form.valorNominal)),
       tasaAnual: parseFloat(String(form.tasaAnual)),
       frecuenciaPago: parseInt(String(form.frecuenciaPago)),
-      frecuenciaCapitalizacion: form.frecuenciaCapitalizacion
-        ? parseInt(String(form.frecuenciaCapitalizacion))
-        : undefined,
       plazo: parseInt(String(form.plazo)),
       nGracia: form.nGracia ? parseInt(String(form.nGracia)) : undefined,
       comisionEmisor: parseFloat(String(form.comisionEmisor)),
@@ -139,7 +136,6 @@ export default function EditarBonoPage() {
                 <SelectValue placeholder="Tipo de tasa" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Nominal">Nominal</SelectItem>
                 <SelectItem value="Efectiva">Efectiva</SelectItem>
               </SelectContent>
             </Select>
@@ -172,34 +168,6 @@ export default function EditarBonoPage() {
               </SelectContent>
             </Select>
           </div>
-          {form.tipoTasa === "Nominal" && (
-            <div>
-              <Label>Frecuencia de Capitalización</Label>
-              <Select
-                value={
-                  form.frecuenciaCapitalizacion
-                    ? String(form.frecuenciaCapitalizacion)
-                    : ""
-                }
-                onValueChange={(val) =>
-                  handleSelect("frecuenciaCapitalizacion", val)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Capitalización" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="360">Diaria</SelectItem>
-                  <SelectItem value="12">Mensual</SelectItem>
-                  <SelectItem value="6">Bimestral</SelectItem>
-                  <SelectItem value="4">Trimestral</SelectItem>
-                  <SelectItem value="3">Cuatrimestral</SelectItem>
-                  <SelectItem value="2">Semestral</SelectItem>
-                  <SelectItem value="1">Anual</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
           <div>
             <Label>Plazo (años)</Label>
             <Input
