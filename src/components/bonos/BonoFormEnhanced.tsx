@@ -68,10 +68,7 @@ const bonoFormSchema = z
     tipoTasa: z
       .string()
       .min(1, "El tipo de tasa es requerido")
-      .refine(
-        (val) => ["Efectiva", "Nominal"].includes(val),
-        "Tipo de tasa no válido"
-      ),
+      .refine((val) => ["Efectiva"].includes(val), "Tipo de tasa no válido"),
     tasaAnual: z
       .string()
       .optional()
@@ -88,7 +85,6 @@ const bonoFormSchema = z
         (val) => ["1", "2"].includes(val),
         "Solo se permite frecuencia anual (1) o semestral (2)"
       ),
-    frecuenciaCapitalizacion: z.string().optional(),
     plazo: z
       .string()
       .min(1, "El plazo es requerido")
@@ -139,26 +135,6 @@ const bonoFormSchema = z
       }, "La tasa de mercado debe estar entre 0% y 100%"),
   })
   .superRefine((data, ctx) => {
-    // Validate frecuenciaCapitalizacion based on tipoTasa
-    if (data.tipoTasa === "Nominal" && !data.frecuenciaCapitalizacion) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["frecuenciaCapitalizacion"],
-        message: "Frecuencia de capitalización requerida para tasa nominal",
-      });
-    }
-
-    if (
-      data.frecuenciaCapitalizacion &&
-      !["1", "2"].includes(data.frecuenciaCapitalizacion)
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["frecuenciaCapitalizacion"],
-        message: "Solo se permite frecuencia anual (1) o semestral (2)",
-      });
-    }
-
     // Validate nGracia
     const nGracia = parseInt(data.nGracia || "0");
     const plazo = parseInt(data.plazo || "0");
@@ -234,11 +210,10 @@ export default function BonoFormEnhanced() {
       nombre: "",
       valorNominal: "",
       moneda: userCurrency,
-      tipoTasa: "",
+      tipoTasa: "Efectiva",
       tasaAnual: "",
       esTasaDinamica: false,
       frecuenciaPago: "1",
-      frecuenciaCapitalizacion: "",
       plazo: "",
       tipoGracia: "Sin Gracia",
       nGracia: "0",
@@ -291,7 +266,6 @@ export default function BonoFormEnhanced() {
     }
   }; // Watch form values for real-time updates
   const watchedValues = form.watch();
-  const tipoTasa = form.watch("tipoTasa");
   const tipoGracia = form.watch("tipoGracia");
 
   // Generate preview of periods for dynamic rates
@@ -408,9 +382,6 @@ export default function BonoFormEnhanced() {
         tasaMercado: 0, // Will be calculated
         userId: firebaseUser?.uid || "",
         emisorNombre: "",
-        frecuenciaCapitalizacion: watchedValues.frecuenciaCapitalizacion
-          ? parseInt(watchedValues.frecuenciaCapitalizacion)
-          : undefined,
       };
 
       // Calculate TCEA and TREA
@@ -558,11 +529,6 @@ export default function BonoFormEnhanced() {
       }
 
       // Add optional fields
-      if (data.frecuenciaCapitalizacion) {
-        transformedData.frecuenciaCapitalizacion = parseInt(
-          data.frecuenciaCapitalizacion
-        );
-      }
       if (data.nGracia) {
         transformedData.nGracia = parseInt(data.nGracia);
       }
@@ -810,7 +776,6 @@ export default function BonoFormEnhanced() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Efectiva">📈 Tasa Efectiva</SelectItem>
-                      <SelectItem value="Nominal">📊 Tasa Nominal</SelectItem>
                     </SelectContent>
                   </Select>
                   {form.formState.errors.tipoTasa && (
@@ -1123,27 +1088,6 @@ export default function BonoFormEnhanced() {
                     </p>
                   )}
                 </div>
-                {tipoTasa === "Nominal" && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-gray-700">
-                      Frecuencia de Capitalización
-                    </Label>
-                    <Select
-                      value={form.watch("frecuenciaCapitalizacion") || ""}
-                      onValueChange={(value) =>
-                        form.setValue("frecuenciaCapitalizacion", value)
-                      }
-                    >
-                      <SelectTrigger className="border-gray-300 focus:border-blue-500">
-                        <SelectValue placeholder="Capitalización" />
-                      </SelectTrigger>{" "}
-                      <SelectContent>
-                        <SelectItem value="2">🔄 Semestral</SelectItem>
-                        <SelectItem value="1">🔄 Anual</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}{" "}
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                     Plazo (años) *
