@@ -46,6 +46,11 @@ import {
 } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { calcularFlujoFrances } from "@/lib/francesMetod";
+import {
+  calcularDuracion,
+  calcularConvexidad,
+  type FlujoBono,
+} from "@/lib/indicadoresBono";
 
 const bonoFormSchema = z
   .object({
@@ -183,6 +188,7 @@ interface GraciaPeriodoBono {
 interface CalculatedMetrics {
   tcea: number;
   trea: number;
+  tes?: number; // Tasa Efectiva Semestral
   totalPeriodos: number;
   cuotaConstante: number;
   totalIntereses: number;
@@ -364,11 +370,17 @@ export default function BonoFormEnhanced() {
         tasaMercado: 0, // Will be calculated
         userId: firebaseUser?.uid || "",
         emisorNombre: "",
-      };
-
-      // Calculate TCEA and TREA
+      }; // Calculate TCEA and TREA
       const tcea = calcularTCEABono(bonoData);
       const trea = calcularTREABono(bonoData);
+      // Calculate TES (Tasa Efectiva Semestral) if frequency is semestral
+      let tes: number | undefined;
+      if (parseInt(frecuenciaPago) === 2) {
+        // For semestral frequency, calculate TES from annual rate
+        // TES = (1 + TEA)^(1/2) - 1
+        const tasaAnualDecimal = parseFloat(tasaAnual) / 100;
+        tes = (Math.pow(1 + tasaAnualDecimal, 1 / 2) - 1) * 100;
+      }
 
       // Calculate cash flows using French method
       const mapGracia = (tipo: string): "Ninguno" | "Total" | "Parcial" => {
@@ -386,19 +398,28 @@ export default function BonoFormEnhanced() {
         gracia: mapGracia(bonoData.tipoGracia),
         numPeriodosGracia: bonoData.nGracia || 0,
       });
-
       const totalPeriodos = flujos.length;
       const cuotaConstante = flujos.length > 0 ? flujos[0].cuota : 0;
       const totalIntereses = flujos.reduce((sum, f) => sum + f.interes, 0);
       const totalPagado = flujos.reduce((sum, f) => sum + f.cuota, 0);
 
-      // Basic duration calculation (simplified)
-      const duracion = totalPeriodos / 2; // Simplified calculation
-      const convexidad = duracion * 1.5; // Simplified calculation
+      // Calculate duration and convexity using actual financial formulas
+      const tasaPeriodo = bonoData.tasaAnual / 100 / bonoData.frecuenciaPago;
+
+      // Convert cash flows to the format expected by indicadoresBono functions
+      const flujosBono: FlujoBono[] = flujos.map((f) => ({
+        periodo: f.periodo,
+        flujo: f.cuota,
+      }));
+
+      // Calculate actual duration and convexity using proper financial formulas
+      const duracion = calcularDuracion(flujosBono, tasaPeriodo);
+      const convexidad = calcularConvexidad(flujosBono, tasaPeriodo);
 
       return {
         tcea,
         trea,
+        tes,
         totalPeriodos,
         cuotaConstante,
         totalIntereses,
@@ -1356,8 +1377,8 @@ export default function BonoFormEnhanced() {
                     <p>Tasas de rendimiento efectivo para el inversionista</p>
                   </TooltipContent>
                 </Tooltip>
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
+              </div>{" "}
+              <div className="grid md:grid-cols-3 gap-4">
                 <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
                   <div className="text-center">
                     <div className="text-sm text-indigo-600 mb-1">
@@ -1373,6 +1394,32 @@ export default function BonoFormEnhanced() {
                     </div>
                   </div>
                 </div>
+
+                {/* Mostrar TES solo cuando la frecuencia es semestral */}
+                {calculatedMetrics?.tes !== undefined && (
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <div className="text-center">
+                      <div className="text-sm text-purple-600 mb-1 flex items-center justify-center gap-1">
+                        TES (Bonista)
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-3 h-3 text-purple-400 cursor-pointer" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Tasa Efectiva Semestral</p>
+                            <p>Para frecuencia de pago semestral</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <div className="text-2xl font-bold text-purple-700">
+                        {`${calculatedMetrics.tes.toFixed(4)}%`}
+                      </div>
+                      <div className="text-xs text-purple-600 mt-1">
+                        Rendimiento semestral
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
                   <div className="text-center">
@@ -1470,6 +1517,7 @@ export default function BonoFormEnhanced() {
                 </div>
                 {calculatedMetrics ? (
                   <div className="space-y-4">
+                    {" "}
                     <div className="bg-white p-4 rounded-lg border border-blue-200">
                       <h5 className="font-semibold text-gray-800 mb-3">
                         Tasas Calculadas
@@ -1486,10 +1534,29 @@ export default function BonoFormEnhanced() {
                           <span className="font-mono text-sm font-semibold text-blue-700">
                             {calculatedMetrics.trea.toFixed(4)}%
                           </span>
-                        </div>
+                        </div>{" "}
+                        {/* Mostrar TES solo cuando la frecuencia es semestral */}
+                        {calculatedMetrics.tes !== undefined && (
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-600 flex items-center gap-1">
+                              TES:
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="w-3 h-3 text-gray-400 cursor-pointer" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Tasa Efectiva Semestral</p>
+                                  <p>Calculada para frecuencia semestral</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </span>
+                            <span className="font-mono text-sm font-semibold text-purple-700">
+                              {calculatedMetrics.tes.toFixed(4)}%
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
-
                     <div className="bg-white p-4 rounded-lg border border-blue-200">
                       <h5 className="font-semibold text-gray-800 mb-3">
                         Método Francés
@@ -1541,7 +1608,6 @@ export default function BonoFormEnhanced() {
                         </div>
                       </div>
                     </div>
-
                     <div className="bg-white p-4 rounded-lg border border-blue-200">
                       <h5 className="font-semibold text-gray-800 mb-3">
                         Frecuencia Seleccionada
@@ -1550,8 +1616,7 @@ export default function BonoFormEnhanced() {
                         {frequencyLabels[watchedValues.frecuenciaPago] ||
                           "No seleccionada"}
                       </p>
-                    </div>
-
+                    </div>{" "}
                     {/* Recommendations */}
                     <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
                       <h5 className="font-semibold text-yellow-800 mb-2">
@@ -1561,11 +1626,19 @@ export default function BonoFormEnhanced() {
                         {calculatedMetrics.trea > 15 && (
                           <p>• TREA alta: Considere reducir comisiones</p>
                         )}
-                        {calculatedMetrics.totalPeriodos > 60 && (
+                        {calculatedMetrics.totalPeriodos > 20 && (
                           <p>• Muchos períodos: Evalúe impacto en flujo</p>
                         )}
-                        {watchedValues.frecuenciaPago === "12" && (
-                          <p>• Pagos mensuales: Mayor control de flujo</p>
+                        {watchedValues.frecuenciaPago === "2" && (
+                          <p>• Pagos semestrales: Mayor control de liquidez</p>
+                        )}
+                        {calculatedMetrics.tes && calculatedMetrics.tes > 8 && (
+                          <p>• TES elevada: Considere ajustar la tasa anual</p>
+                        )}
+                        {calculatedMetrics.cuotaConstante >
+                          parseFloat(watchedValues.valorNominal || "0") *
+                            0.2 && (
+                          <p>• Cuota alta: Verifique capacidad de pago</p>
                         )}
                       </div>
                     </div>
