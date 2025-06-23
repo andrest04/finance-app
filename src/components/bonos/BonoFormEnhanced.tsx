@@ -33,8 +33,6 @@ import {
   Eye,
   EyeOff,
   BarChart3,
-  Plus,
-  Trash2,
 } from "lucide-react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -44,7 +42,6 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
-import { Switch } from "@/components/ui/switch";
 import { calcularFlujoFrances } from "@/lib/francesMetod";
 
 const bonoFormSchema = z
@@ -71,13 +68,11 @@ const bonoFormSchema = z
       .refine((val) => ["Efectiva"].includes(val), "Tipo de tasa no válido"),
     tasaAnual: z
       .string()
-      .optional()
+      .min(1, "La tasa anual es requerida")
       .refine((val) => {
-        if (!val) return true; // Optional field
         const num = parseFloat(val);
-        return !isNaN(num) && num >= 0 && num <= 100;
+        return !isNaN(num) && num > 0 && num <= 100;
       }, "La tasa debe estar entre 0% y 100%"),
-    esTasaDinamica: z.boolean().optional(),
     frecuenciaPago: z
       .string()
       .min(1, "La frecuencia de pago es requerida")
@@ -174,13 +169,6 @@ const bonoFormSchema = z
 
 type BonoFormData = z.infer<typeof bonoFormSchema>;
 
-interface TasaPeriodoBono {
-  id: string;
-  desde: number;
-  hasta: number;
-  tasa: number;
-}
-
 interface CalculatedMetrics {
   tcea: number;
   trea: number;
@@ -198,12 +186,7 @@ export default function BonoFormEnhanced() {
   const [userCurrency, setUserCurrency] = useState("PEN");
   const [showCalculations, setShowCalculations] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
-  const [esTasaDinamica, setEsTasaDinamica] = useState(false);
-  const [tasasPeriodo, setTasasPeriodo] = useState<TasaPeriodoBono[]>([
-    { id: "1", desde: 1, hasta: 1, tasa: 10 },
-  ]);
-  const router = useRouter();
-  // Form setup
+  const router = useRouter(); // Form setup
   const form = useForm<BonoFormData>({
     resolver: zodResolver(bonoFormSchema),
     defaultValues: {
@@ -212,7 +195,6 @@ export default function BonoFormEnhanced() {
       moneda: userCurrency,
       tipoTasa: "Efectiva",
       tasaAnual: "",
-      esTasaDinamica: false,
       frecuenciaPago: "1",
       plazo: "",
       tipoGracia: "Sin Gracia",
@@ -224,96 +206,18 @@ export default function BonoFormEnhanced() {
     },
   });
 
-  // Functions for dynamic rates
-  const agregarTasaPeriodo = () => {
-    const nuevaTasa: TasaPeriodoBono = {
-      id: Date.now().toString(),
-      desde: 1,
-      hasta: 1,
-      tasa: 10,
-    };
-    setTasasPeriodo([...tasasPeriodo, nuevaTasa]);
-  };
-
-  const eliminarTasaPeriodo = (id: string) => {
-    setTasasPeriodo(tasasPeriodo.filter((t) => t.id !== id));
-  };
-
-  const actualizarTasaPeriodo = (
-    id: string,
-    campo: keyof Omit<TasaPeriodoBono, "id">,
-    valor: number
-  ) => {
-    setTasasPeriodo(
-      tasasPeriodo.map((t) => (t.id === id ? { ...t, [campo]: valor } : t))
-    );
-  };
-  const getTasaPeriodicoLabel = (): string => {
-    const frecuencia = parseInt(form.watch("frecuenciaPago") || "1");
-    switch (frecuencia) {
-      case 1:
-        return "TEA";
-      case 2:
-        return "TES";
-      case 3:
-        return "TEC";
-      case 4:
-        return "TET";
-      case 12:
-        return "TEM";
-      default:
-        return "TEP";
-    }
-  }; // Watch form values for real-time updates
+  // Watch form values for real-time updates
   const watchedValues = form.watch();
   const tipoGracia = form.watch("tipoGracia");
 
-  // Generate preview of periods for dynamic rates
-  const generarVistaPeriodos = useMemo(() => {
-    if (
-      !esTasaDinamica ||
-      !watchedValues.plazo ||
-      !watchedValues.frecuenciaPago
-    ) {
-      return [];
-    }
-
-    const plazo = parseInt(watchedValues.plazo);
-    const frecuencia = parseInt(watchedValues.frecuenciaPago);
-    const totalPeriodos = plazo * frecuencia;
-
-    const periodos = [];
-    for (let i = 1; i <= totalPeriodos; i++) {
-      // Find the rate for this period
-      let tasaAplicable = 10; // Default
-      for (const rango of tasasPeriodo) {
-        if (i >= rango.desde && i <= rango.hasta) {
-          tasaAplicable = rango.tasa;
-          break;
-        }
-      }
-
-      periodos.push({
-        periodo: i,
-        tasa: tasaAplicable,
-        tasaPeriodica:
-          (Math.pow(1 + tasaAplicable / 100, 1 / frecuencia) - 1) * 100,
-      });
-    }
-
-    return periodos;
-  }, [
-    esTasaDinamica,
-    tasasPeriodo,
-    watchedValues.plazo,
-    watchedValues.frecuenciaPago,
-  ]); // Calculate completion percentage
+  // Calculate completion percentage
   const completionPercentage = useMemo(() => {
-    const baseFields = [
+    const requiredFields = [
       "nombre",
       "valorNominal",
       "moneda",
       "tipoTasa",
+      "tasaAnual",
       "frecuenciaPago",
       "plazo",
       "tipoGracia",
@@ -322,30 +226,13 @@ export default function BonoFormEnhanced() {
       "comisionBonista",
     ];
 
-    // Add tasaAnual as required only if not using dynamic rates
-    const requiredFields = esTasaDinamica
-      ? baseFields
-      : [...baseFields, "tasaAnual"];
-
     const completedFields = requiredFields.filter((field) => {
       const value = watchedValues[field as keyof BonoFormData];
       return value && typeof value === "string" && value.trim() !== "";
     }).length;
 
-    // For dynamic rates, also check if at least one rate period is configured
-    if (esTasaDinamica) {
-      const hasValidRates = tasasPeriodo.some(
-        (periodo) => periodo.tasa > 0 && periodo.desde > 0 && periodo.hasta > 0
-      );
-      if (!hasValidRates) {
-        return Math.round(
-          (completedFields / (requiredFields.length + 1)) * 100
-        );
-      }
-    }
-
     return Math.round((completedFields / requiredFields.length) * 100);
-  }, [watchedValues, esTasaDinamica, tasasPeriodo]);
+  }, [watchedValues]);
 
   // Real-time calculations
   const calculatedMetrics = useMemo((): CalculatedMetrics | null => {
@@ -464,22 +351,10 @@ export default function BonoFormEnhanced() {
       form.setValue("nGracia", "0");
     }
   }, [tipoGracia, form]);
-
   const onSubmit = async (data: BonoFormData) => {
     if (!firebaseUser) {
       toast.error("Debes iniciar sesión para registrar un bono.");
       return;
-    }
-
-    // Validate dynamic rates if enabled
-    if (esTasaDinamica) {
-      const hasValidRates = tasasPeriodo.some(
-        (periodo) => periodo.tasa > 0 && periodo.desde > 0 && periodo.hasta > 0
-      );
-      if (!hasValidRates) {
-        toast.error("Debe configurar al menos un rango de tasa válido.");
-        return;
-      }
     }
 
     setIsSubmitting(true);
@@ -492,11 +367,7 @@ export default function BonoFormEnhanced() {
         valorNominal: parseFloat(data.valorNominal),
         moneda: data.moneda,
         tipoTasa: data.tipoTasa,
-        tasaAnual: esTasaDinamica
-          ? 0
-          : data.tasaAnual
-          ? parseFloat(data.tasaAnual)
-          : 0,
+        tasaAnual: parseFloat(data.tasaAnual),
         frecuenciaPago: parseInt(data.frecuenciaPago),
         plazo: parseInt(data.plazo),
         tipoGracia: data.tipoGracia,
@@ -508,25 +379,8 @@ export default function BonoFormEnhanced() {
         emisorNombre,
       };
 
-      // Add optional fields only if they have values
-      if (esTasaDinamica) {
-        transformedData.esTasaDinamica = true;
-        transformedData.tasasPorPeriodo = tasasPeriodo.map((t) => ({
-          desde: t.desde,
-          hasta: t.hasta,
-          tasa: t.tasa,
-        }));
-      }
-
-      // Calculate TREA automatically (for now, use average rate for dynamic rates)
-      if (esTasaDinamica) {
-        const avgRate =
-          tasasPeriodo.reduce((sum, t) => sum + t.tasa, 0) /
-          tasasPeriodo.length;
-        transformedData.tasaMercado = avgRate; // Simplified calculation
-      } else {
-        transformedData.tasaMercado = calcularTREABono(transformedData);
-      }
+      // Calculate TREA automatically
+      transformedData.tasaMercado = calcularTREABono(transformedData);
 
       // Add optional fields
       if (data.nGracia) {
@@ -535,11 +389,7 @@ export default function BonoFormEnhanced() {
 
       await saveBono(firebaseUser, transformedData);
 
-      const successMessage = esTasaDinamica
-        ? "¡Bono registrado exitosamente con tasas dinámicas!"
-        : "¡Bono registrado exitosamente con el método francés!";
-
-      toast.success(successMessage);
+      toast.success("¡Bono registrado exitosamente con el método francés!");
       form.reset();
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -785,271 +635,66 @@ export default function BonoFormEnhanced() {
                     </p>
                   )}{" "}
                 </div>
-                {/* Switch para Tasa Dinámica */}
-                <div className="col-span-2 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center">
-                        <TrendingUp className="w-4 h-4 text-white" />
-                      </div>
-                      <div>
-                        <Label className="text-sm font-semibold text-gray-800">
-                          Tasa Dinámica
-                        </Label>
-                        <p className="text-xs text-gray-600">
-                          Permitir diferentes tasas por períodos
-                        </p>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={esTasaDinamica}
-                      onCheckedChange={(checked) => {
-                        setEsTasaDinamica(checked);
-                        form.setValue("esTasaDinamica", checked);
-                        if (!checked) {
-                          // Reset to single rate
-                          setTasasPeriodo([
-                            { id: "1", desde: 1, hasta: 1, tasa: 10 },
-                          ]);
-                        }
-                      }}
+                {/* Tasa Anual */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    Tasa Anual *
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={0} className="cursor-help">
+                          <Info className="w-3 h-3 text-gray-400" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Tasa de interés anual. Rango válido: 0% - 100%</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      {...form.register("tasaAnual")}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      placeholder="8.50"
+                      className="border-gray-300 focus:border-blue-500 pr-8"
                     />
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
+                      %
+                    </span>
                   </div>
-                </div>
-                {/* Tasa Fija o Dinámica */}
-                {!esTasaDinamica ? (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      Tasa Anual *
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span tabIndex={0} className="cursor-help">
-                            <Info className="w-3 h-3 text-gray-400" />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Tasa de interés anual. Rango válido: 0% - 100%</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        {...form.register("tasaAnual")}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="100"
-                        placeholder="8.50"
-                        className="border-gray-300 focus:border-blue-500 pr-8"
-                      />
-                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
-                        %
-                      </span>
-                    </div>
-                    {form.formState.errors.tasaAnual && (
-                      <p className="text-sm text-red-500 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        {form.formState.errors.tasaAnual.message}
-                      </p>
-                    )}
+                  {form.formState.errors.tasaAnual && (
+                    <p className="text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {form.formState.errors.tasaAnual.message}
+                    </p>
+                  )}
 
-                    {/* Validación de tasa anual */}
-                    {watchedValues.tasaAnual &&
-                      parseFloat(watchedValues.tasaAnual) > 0 && (
-                        <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" />
-                          Tasa válida para método francés
-                        </div>
-                      )}
-                    {watchedValues.tasaAnual &&
-                      parseFloat(watchedValues.tasaAnual) > 25 && (
-                        <div className="mt-2 text-xs text-orange-600 flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" />
-                          Tasa muy alta - Verifique el valor
-                        </div>
-                      )}
-                    {watchedValues.tasaAnual &&
-                      parseFloat(watchedValues.tasaAnual) < 1 &&
-                      parseFloat(watchedValues.tasaAnual) > 0 && (
-                        <div className="mt-2 text-xs text-blue-600 flex items-center gap-1">
-                          <Info className="w-3 h-3" />
-                          Tasa baja - Confirme si es correcta
-                        </div>
-                      )}
-                  </div>
-                ) : (
-                  /* Configuración de Tasas Variables */
-                  <div className="col-span-2 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-2 rounded-lg shadow-lg">
-                          <TrendingUp className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                          <h4 className="text-lg font-bold text-gray-800">
-                            Tasas Variables por Período
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            Configure las tasas por rangos de tiempo
-                          </p>
-                        </div>
+                  {/* Validación de tasa anual */}
+                  {watchedValues.tasaAnual &&
+                    parseFloat(watchedValues.tasaAnual) > 0 && (
+                      <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        Tasa válida para método francés
                       </div>
-                      <Button
-                        type="button"
-                        onClick={agregarTasaPeriodo}
-                        className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-                        size="sm"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Agregar Rango
-                      </Button>
-                    </div>
-
-                    <div className="space-y-4">
-                      {tasasPeriodo.map((tasa, index) => (
-                        <div
-                          key={tasa.id}
-                          className="bg-white rounded-xl border-2 border-gray-100 hover:border-green-200 p-5 transition-all duration-200 shadow-sm hover:shadow-md"
-                        >
-                          <div className="flex justify-between items-center mb-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                                {index + 1}
-                              </div>
-                              <div>
-                                <span className="text-sm font-bold text-gray-800">
-                                  Rango #{index + 1}
-                                </span>
-                                <p className="text-xs text-gray-500">
-                                  Configuración de tasa por período
-                                </p>
-                              </div>
-                            </div>
-                            {tasasPeriodo.length > 1 && (
-                              <Button
-                                type="button"
-                                onClick={() => eliminarTasaPeriodo(tasa.id)}
-                                size="sm"
-                                variant="ghost"
-                                className="text-red-500 hover:text-white hover:bg-red-500 transition-all duration-200 rounded-full"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-
-                          <div className="grid grid-cols-3 gap-4">
-                            <div className="space-y-2">
-                              <Label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
-                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                Período Desde
-                              </Label>
-                              <div className="relative">
-                                <Input
-                                  type="number"
-                                  value={tasa.desde || ""}
-                                  onChange={(e) =>
-                                    actualizarTasaPeriodo(
-                                      tasa.id,
-                                      "desde",
-                                      e.target.value
-                                        ? parseInt(e.target.value)
-                                        : 1
-                                    )
-                                  }
-                                  className="h-11 text-center font-bold bg-blue-50 border-2 border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                                  min="1"
-                                  placeholder="1"
-                                />
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
-                                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                Período Hasta
-                              </Label>
-                              <div className="relative">
-                                <Input
-                                  type="number"
-                                  value={tasa.hasta || ""}
-                                  onChange={(e) =>
-                                    actualizarTasaPeriodo(
-                                      tasa.id,
-                                      "hasta",
-                                      e.target.value
-                                        ? parseInt(e.target.value)
-                                        : 1
-                                    )
-                                  }
-                                  className="h-11 text-center font-bold bg-purple-50 border-2 border-purple-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
-                                  min="1"
-                                  placeholder="12"
-                                />
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
-                                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                                Tasa (%)
-                              </Label>
-                              <div className="relative">
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  value={tasa.tasa || ""}
-                                  onChange={(e) =>
-                                    actualizarTasaPeriodo(
-                                      tasa.id,
-                                      "tasa",
-                                      e.target.value
-                                        ? parseFloat(e.target.value)
-                                        : 0
-                                    )
-                                  }
-                                  className="h-11 text-center font-bold text-lg bg-emerald-50 border-2 border-emerald-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                                  min="0"
-                                  placeholder="12.50"
-                                />
-                                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-emerald-600 font-bold">
-                                  %
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Visualización del rango */}
-                          <div className="mt-3 p-3 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg border border-gray-200">
-                            <p className="text-sm text-gray-700 text-center">
-                              <span className="font-semibold">
-                                Períodos {tasa.desde} al {tasa.hasta}:
-                              </span>
-                              <span className="text-emerald-600 font-bold ml-2">
-                                {tasa.tasa}% TEA
-                              </span>{" "}
-                              {form.watch("frecuenciaPago") && (
-                                <span className="text-gray-500 ml-2">
-                                  (≈{" "}
-                                  {(
-                                    (Math.pow(
-                                      1 + tasa.tasa / 100,
-                                      1 /
-                                        parseInt(
-                                          form.watch("frecuenciaPago") || "1"
-                                        )
-                                    ) -
-                                      1) *
-                                    100
-                                  ).toFixed(2)}
-                                  % {getTasaPeriodicoLabel()})
-                                </span>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                    )}
+                  {watchedValues.tasaAnual &&
+                    parseFloat(watchedValues.tasaAnual) > 25 && (
+                      <div className="mt-2 text-xs text-orange-600 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Tasa muy alta - Verifique el valor
+                      </div>
+                    )}
+                  {watchedValues.tasaAnual &&
+                    parseFloat(watchedValues.tasaAnual) < 1 &&
+                    parseFloat(watchedValues.tasaAnual) > 0 && (
+                      <div className="mt-2 text-xs text-blue-600 flex items-center gap-1">
+                        <Info className="w-3 h-3" />
+                        Tasa baja - Confirme si es correcta
+                      </div>
+                    )}
+                </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-gray-700">
                     Frecuencia de Pago *
@@ -1571,69 +1216,6 @@ export default function BonoFormEnhanced() {
                     </p>
                   </div>
                 )}{" "}
-              </Card>
-            )}
-
-            {/* VISTA PREVIA DE PERÍODOS PARA TASA DINÁMICA */}
-            {esTasaDinamica && generarVistaPeriodos.length > 0 && (
-              <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <TrendingUp className="w-5 h-5 text-green-600" />
-                  <h4 className="font-bold text-green-900">
-                    Vista Previa - Períodos con Tasas Dinámicas
-                  </h4>
-                </div>
-
-                <div className="max-h-64 overflow-y-auto bg-white rounded-lg border border-green-200">
-                  <table className="w-full text-sm">
-                    <thead className="bg-green-100 sticky top-0">
-                      <tr>
-                        <th className="px-3 py-2 text-left font-semibold text-green-800">
-                          Período
-                        </th>
-                        <th className="px-3 py-2 text-right font-semibold text-green-800">
-                          TEA
-                        </th>
-                        <th className="px-3 py-2 text-right font-semibold text-green-800">
-                          {getTasaPeriodicoLabel()}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {generarVistaPeriodos.map((periodo, index) => (
-                        <tr
-                          key={periodo.periodo}
-                          className={`border-b border-green-100 ${
-                            index % 2 === 0 ? "bg-white" : "bg-green-25"
-                          } hover:bg-green-50 transition-colors`}
-                        >
-                          <td className="px-3 py-2 font-medium text-gray-700">
-                            {periodo.periodo}
-                          </td>
-                          <td className="px-3 py-2 text-right font-mono text-emerald-700">
-                            {periodo.tasa.toFixed(2)}%
-                          </td>
-                          <td className="px-3 py-2 text-right font-mono text-blue-700">
-                            {periodo.tasaPeriodica.toFixed(4)}%
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="mt-3 p-3 bg-green-100 rounded-lg">
-                  <div className="flex items-center gap-2 text-sm text-green-800">
-                    <Info className="w-4 h-4" />
-                    <span className="font-medium">
-                      Total de períodos: {generarVistaPeriodos.length}
-                    </span>
-                  </div>
-                  <div className="text-xs text-green-700 mt-1">
-                    Las tasas varían según los rangos configurados. Cada período
-                    tendrá la tasa correspondiente al rango al que pertenece.
-                  </div>
-                </div>
               </Card>
             )}
 

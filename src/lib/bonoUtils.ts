@@ -26,12 +26,6 @@ export interface BonoData {
   moneda: string;
   tipoTasa: string;
   tasaAnual: number;
-  esTasaDinamica?: boolean;
-  tasasPorPeriodo?: Array<{
-    desde: number;
-    hasta: number;
-    tasa: number;
-  }>;
   frecuenciaPago: number;
   plazo: number;
   tipoGracia: string;
