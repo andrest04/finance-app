@@ -88,8 +88,8 @@ const bonoFormSchema = z
       .min(1, "El plazo es requerido")
       .refine((val) => {
         const num = parseInt(val);
-        return !isNaN(num) && num > 0 && num <= 30;
-      }, "El plazo debe estar entre 1 y 30 años"),
+        return !isNaN(num) && num >= 3 && num <= 10;
+      }, "El plazo debe estar entre 3 y 10 años"),
     tipoGracia: z
       .string()
       .min(1, "El tipo de gracia es requerido")
@@ -852,8 +852,9 @@ export default function BonoFormEnhanced() {
                       {form.formState.errors.frecuenciaPago.message}
                     </p>
                   )}
-                </div>
+                </div>{" "}
                 <div className="space-y-2">
+                  {" "}
                   <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                     Plazo (años) *
                     <Tooltip>
@@ -863,18 +864,46 @@ export default function BonoFormEnhanced() {
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Duración del bono. Rango válido: 1 - 30 años</p>
+                        <p>Duración del bono. Rango válido: 3 - 10 años</p>
                       </TooltipContent>
                     </Tooltip>
                   </Label>
                   <Input
                     {...form.register("plazo")}
                     type="number"
-                    min="1"
-                    max="30"
+                    min="3"
+                    max="10"
                     placeholder="5"
                     className="border-gray-300 focus:border-blue-500"
                   />
+                  {/* Validación inteligente en tiempo real para plazo */}
+                  {watchedValues.plazo && (
+                    <>
+                      {(() => {
+                        const plazoNum = parseInt(watchedValues.plazo);
+                        if (
+                          !isNaN(plazoNum) &&
+                          plazoNum >= 3 &&
+                          plazoNum <= 10
+                        ) {
+                          return (
+                            <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" />
+                              Plazo válido para el bono corporativo
+                            </div>
+                          );
+                        } else if (!isNaN(plazoNum)) {
+                          return (
+                            <div className="mt-2 text-xs text-blue-600 flex items-center gap-1">
+                              <Info className="w-3 h-3" />
+                              El plazo debe estar entre 3 y 10 años
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </>
+                  )}
                   {form.formState.errors.plazo && (
                     <p className="text-sm text-red-500 flex items-center gap-1">
                       <AlertCircle className="w-3 h-3" />
