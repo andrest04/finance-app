@@ -30,6 +30,12 @@ export interface BonoData {
   plazo: number;
   tipoGracia: string;
   nGracia?: number;
+  esGraciaDinamica?: boolean;
+  graciasPorPeriodo?: Array<{
+    desde: number;
+    hasta: number;
+    tipoGracia: "Sin Gracia" | "Parcial" | "Total";
+  }>;
   fechaEmision: string | { seconds: number };
   comisionEmisor: number;
   comisionBonista: number;
