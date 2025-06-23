@@ -838,14 +838,6 @@ export default function AnalisisBonosPage() {
                         </div>
                         <div>
                           <p className="text-xs font-medium text-slate-700 mb-1">
-                            Nominal a Efectiva por Período:
-                          </p>
-                          <div className="bg-white p-3 rounded border border-slate-200 font-mono text-xs text-slate-700">
-                            i = TNM / m
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-slate-700 mb-1">
                             Anualización de Tasa:
                           </p>
                           <div className="bg-white p-3 rounded border border-slate-200 font-mono text-xs text-slate-700">

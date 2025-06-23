@@ -332,16 +332,6 @@ export default function FormulasPage() {
                       ]}
                     />
                     <FormulaCard
-                      id="nominal-efectiva"
-                      title="Nominal a Efectiva por Período"
-                      formula="i = TNM / m"
-                      description="Convierte tasa nominal a tasa efectiva por período"
-                      variables={[
-                        "TNM: Tasa Nominal Mensual",
-                        "m: Número de períodos por año",
-                      ]}
-                    />
-                    <FormulaCard
                       id="anualizacion"
                       title="Anualización de Tasa"
                       formula="Tasa_Anual = ((1 + tasa_período)^m - 1) × 100"

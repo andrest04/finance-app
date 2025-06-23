@@ -201,8 +201,8 @@ export default function DetalleBonoPage() {
                 const typedCampo = campo as keyof BonoData;
                 let valor = "";
                 if (
-                  campo === "frecuenciaPago" ||
-                  campo === "frecuenciaCapitalizacion"
+                  campo ===
+                  "frecuenciaPago" /* || campo === "frecuenciaCapitalizacion" */
                 ) {
                   valor =
                     frecuenciaTexto[String(bono[typedCampo])] ||

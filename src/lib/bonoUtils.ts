@@ -33,7 +33,6 @@ export interface BonoData {
     tasa: number;
   }>;
   frecuenciaPago: number;
-  frecuenciaCapitalizacion?: number;
   plazo: number;
   tipoGracia: string;
   nGracia?: number;

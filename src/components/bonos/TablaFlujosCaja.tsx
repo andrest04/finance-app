@@ -31,17 +31,8 @@ export default function TablaFlujosCaja({ bono }: TablaFlujosCajaProps) {
   // Calcular TEA y TES
   const calcularTasas = () => {
     const tea = bono.tasaAnual; // TEA (Tasa Efectiva Anual)
-
     // Calcular TES basado en la frecuencia de pago
-    let tes: number;
-    if (bono.tipoTasa === "Efectiva") {
-      // Para tasa efectiva, convertir de anual a la frecuencia correspondiente
-      tes = Math.pow(1 + tea / 100, 1 / bono.frecuenciaPago) - 1;
-    } else {
-      // Para tasa nominal, dividir entre la frecuencia
-      tes = tea / 100 / bono.frecuenciaPago;
-    }
-
+    const tes = Math.pow(1 + tea / 100, 1 / bono.frecuenciaPago) - 1;
     return { tea, tes: tes * 100 };
   };
 
