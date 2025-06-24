@@ -64,8 +64,8 @@ const bonoFormSchema = z
       .min(1, "El valor nominal es requerido")
       .refine((val) => {
         const num = parseFloat(val);
-        return !isNaN(num) && num > 0;
-      }, "El valor nominal debe ser mayor a 0"),
+        return !isNaN(num) && num > 0 && num % 1000 === 0;
+      }, "El valor nominal debe ser un múltiplo de 1000"),
     moneda: z
       .string()
       .min(1, "La moneda es requerida")
@@ -646,24 +646,44 @@ export default function BonoFormEnhanced() {
                       {form.formState.errors.nombre.message}
                     </p>
                   )}
-                </div>
-
+                </div>{" "}
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-gray-700">
                     Valor Nominal (VN) *
                   </Label>
-                  <div className="relative">
-                    <Input
-                      {...form.register("valorNominal")}
-                      type="number"
-                      step="0.01"
-                      placeholder="1000.00"
-                      className="border-gray-300 focus:border-blue-500 pr-12"
-                    />
-                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
-                      {watchedValues.moneda || "PEN"}
-                    </span>
-                  </div>
+                  <Select
+                    value={form.watch("valorNominal")}
+                    onValueChange={(value) =>
+                      form.setValue("valorNominal", value)
+                    }
+                  >
+                    <SelectTrigger className="border-gray-300 focus:border-blue-500">
+                      <SelectValue placeholder="Selecciona valor nominal" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1000">
+                        {watchedValues.moneda || "PEN"} 1,000
+                      </SelectItem>
+                      <SelectItem value="2000">
+                        {watchedValues.moneda || "PEN"} 2,000
+                      </SelectItem>
+                      <SelectItem value="5000">
+                        {watchedValues.moneda || "PEN"} 5,000
+                      </SelectItem>
+                      <SelectItem value="10000">
+                        {watchedValues.moneda || "PEN"} 10,000
+                      </SelectItem>
+                      <SelectItem value="20000">
+                        {watchedValues.moneda || "PEN"} 20,000
+                      </SelectItem>
+                      <SelectItem value="50000">
+                        {watchedValues.moneda || "PEN"} 50,000
+                      </SelectItem>
+                      <SelectItem value="100000">
+                        {watchedValues.moneda || "PEN"} 100,000
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                   {form.formState.errors.valorNominal && (
                     <p className="text-sm text-red-500 flex items-center gap-1">
                       <AlertCircle className="w-3 h-3" />
@@ -676,18 +696,17 @@ export default function BonoFormEnhanced() {
                     parseFloat(watchedValues.valorNominal) > 0 && (
                       <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
                         <CheckCircle className="w-3 h-3" />
-                        Valor nominal válido
+                        Valor nominal válido (múltiplo de 1000)
                       </div>
                     )}
                   {watchedValues.valorNominal &&
-                    parseFloat(watchedValues.valorNominal) > 1000000 && (
+                    parseFloat(watchedValues.valorNominal) > 50000 && (
                       <div className="mt-2 text-xs text-orange-600 flex items-center gap-1">
                         <AlertCircle className="w-3 h-3" />
                         Valor alto - Verifique el monto
                       </div>
                     )}
                 </div>
-
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-gray-700">
                     Moneda *
@@ -716,7 +735,6 @@ export default function BonoFormEnhanced() {
                     </p>
                   )}
                 </div>
-
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-gray-700">
                     Fecha de Emisión *
