@@ -49,7 +49,7 @@ export function calcularFlujoFrances(params: BonoParams): FlujoPeriodo[] {
     for (let i = 1; i <= numPeriodosGracia; i++) {
       const interes = saldo * tasaPeriodo;
       saldo += interes; // Capitalización de interés
-      
+
       flujo.push({
         periodo: i,
         cuota: 0,
@@ -62,14 +62,16 @@ export function calcularFlujoFrances(params: BonoParams): FlujoPeriodo[] {
     // Fase 2: Recalcular cuota para períodos restantes
     const periodosRestantes = n - numPeriodosGracia;
     if (periodosRestantes > 0) {
-      cuota = saldo * (tasaPeriodo / (1 - Math.pow(1 + tasaPeriodo, -periodosRestantes)));
-      
+      cuota =
+        saldo *
+        (tasaPeriodo / (1 - Math.pow(1 + tasaPeriodo, -periodosRestantes)));
+
       // Fase 3: Períodos con pagos normales (método francés)
       for (let i = numPeriodosGracia + 1; i <= n; i++) {
         const interes = saldo * tasaPeriodo;
         const amortizacion = cuota - interes;
         saldo -= amortizacion;
-        
+
         flujo.push({
           periodo: i,
           cuota,
@@ -82,7 +84,7 @@ export function calcularFlujoFrances(params: BonoParams): FlujoPeriodo[] {
   } else {
     // Caso normal (sin gracia o gracia parcial)
     cuota = valorNominal * (tasaPeriodo / (1 - Math.pow(1 + tasaPeriodo, -n)));
-    
+
     for (let i = 1; i <= n; i++) {
       const interes = saldo * tasaPeriodo;
       const amortizacion = cuota - interes;
