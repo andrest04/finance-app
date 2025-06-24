@@ -96,13 +96,11 @@ export default function ComparadorBonos({
     const selectedBonos = bonos.filter((b) => selected.includes(b.id));
     onBonosSeleccionados(selectedBonos);
   }, [selected, bonos, onBonosSeleccionados]);
-
   const handleSelect = (id: string) => {
     setSelected((prev) => {
-      const newSelected = prev.includes(id)
-        ? prev.filter((x) => x !== id)
-        : [...prev, id];
-      return newSelected;
+      // Solo permitir un bono seleccionado a la vez
+      const isCurrentlySelected = prev.includes(id);
+      return isCurrentlySelected ? [] : [id];
     });
   };
 
