@@ -1226,10 +1226,10 @@ export default function BonoListEnhanced() {
                       </th>
                       <th className="text-right p-4 font-semibold text-gray-700">
                         TREA
-                      </th>
+                      </th>{" "}
                       <th className="text-center p-4 font-semibold text-gray-700">
                         Plazo
-                      </th>{" "}
+                      </th>
                       <th className="text-center p-4 font-semibold text-gray-700">
                         Acciones
                       </th>
