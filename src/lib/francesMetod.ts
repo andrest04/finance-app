@@ -44,7 +44,6 @@ export function calcularFlujoFrances(params: BonoParams): FlujoPeriodo[] {
 
   let saldo = valorNominal;
   const flujo: FlujoPeriodo[] = [];
-
   for (let i = 1; i <= n; i++) {
     const interes = saldo * tasaPeriodo;
     const amortizacion = cuota - interes;
@@ -75,6 +74,15 @@ export function calcularFlujoFrances(params: BonoParams): FlujoPeriodo[] {
         saldo: saldo < 1e-6 ? 0 : saldo,
       });
     }
+  }
+
+  // Verificación especial para gracia parcial durante todo el plazo
+  if (gracia === "Parcial" && numPeriodosGracia === n) {
+    // Modificar el último flujo para devolver el capital completo
+    const ultimoFlujo = flujo[flujo.length - 1];
+    ultimoFlujo.cuota += valorNominal;
+    ultimoFlujo.amortizacion = valorNominal;
+    ultimoFlujo.saldo = 0;
   }
 
   return flujo;

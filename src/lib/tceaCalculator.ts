@@ -75,24 +75,23 @@ export function calcularTCEA(params: TCEAParams): TCEAResult {
   // 2. Calcular lo que realmente recibe el emisor al inicio
   // Recibe el valor nominal menos las comisiones que debe pagar
   const comisionEmisorMonto = (valorNominal * comisionEmisor) / 100;
-  const ingresoInicialEmisor = valorNominal - comisionEmisorMonto;
-  // 3. Crear el flujo del emisor
-  const flujoEmisor = flujoFrances.map((periodo, index) => {
-    let ingresoNeto = 0;
-    const pago = periodo.cuota;
-
-    // En el primer período, el emisor recibe el monto neto
-    if (index === 0) {
-      ingresoNeto = ingresoInicialEmisor;
-    }
-
-    return {
+  const ingresoInicialEmisor = valorNominal - comisionEmisorMonto;  // 3. Crear el flujo del emisor
+  // Período 0: El emisor recibe el monto neto
+  const flujoEmisor = [
+    {
+      periodo: 0,
+      ingresoNeto: ingresoInicialEmisor,
+      pago: 0,
+      flujoNeto: ingresoInicialEmisor,
+    },
+    // Períodos 1 en adelante: El emisor paga las cuotas
+    ...flujoFrances.map((periodo) => ({
       periodo: periodo.periodo,
-      ingresoNeto,
-      pago,
-      flujoNeto: ingresoNeto - pago,
-    };
-  });
+      ingresoNeto: 0,
+      pago: periodo.cuota,
+      flujoNeto: -periodo.cuota,
+    })),
+  ];
 
   // 4. Calcular la TCEA usando el método de Newton-Raphson
   const tceaAnual = calcularTCEANewtonRaphson(flujoEmisor, frecuenciaPago);
@@ -113,8 +112,8 @@ function calcularTCEANewtonRaphson(
   precision: number = 1e-6,
   maxIteraciones: number = 100
 ): number {
-  const tasa = 0.1; // Tasa inicial estimada (10% anual)
-  let tasaPeriodo = tasa / frecuenciaPago;
+  const tasaAnual = 0.08; // Tasa inicial estimada (8% anual, más cercana al ejemplo)
+  let tasaPeriodo = tasaAnual / frecuenciaPago;
 
   for (let i = 0; i < maxIteraciones; i++) {
     const { vpn, derivada } = calcularVPNyDerivada(flujoEmisor, tasaPeriodo);
@@ -225,24 +224,23 @@ export function calcularTREA(params: TREAParams): TREAResult {
   // Paga el valor nominal más las comisiones del bonista
   const comisionBonistaMonto = (valorNominal * comisionBonista) / 100;
   const inversionInicialBonista = valorNominal + comisionBonistaMonto;
-
   // 3. Crear el flujo del inversionista
-  const flujoInversionista = flujoFrances.map((periodo, index) => {
-    let inversion = 0;
-    const ingreso = periodo.cuota;
-
-    // En el primer período, el inversionista realiza la inversión inicial
-    if (index === 0) {
-      inversion = inversionInicialBonista;
-    }
-
-    return {
+  // Período 0: El inversionista realiza la inversión inicial
+  const flujoInversionista = [
+    {
+      periodo: 0,
+      inversion: inversionInicialBonista,
+      ingreso: 0,
+      flujoNeto: -inversionInicialBonista,
+    },
+    // Períodos 1 en adelante: El inversionista recibe las cuotas
+    ...flujoFrances.map((periodo) => ({
       periodo: periodo.periodo,
-      inversion,
-      ingreso,
-      flujoNeto: ingreso - inversion,
-    };
-  });
+      inversion: 0,
+      ingreso: periodo.cuota,
+      flujoNeto: periodo.cuota,
+    })),
+  ];
 
   // 4. Calcular la TREA usando el método de Newton-Raphson
   const treaAnual = calcularTREANewtonRaphson(
@@ -266,8 +264,8 @@ function calcularTREANewtonRaphson(
   precision: number = 1e-6,
   maxIteraciones: number = 100
 ): number {
-  const tasa = 0.1; // Tasa inicial estimada (10% anual)
-  let tasaPeriodo = tasa / frecuenciaPago;
+  const tasaAnual = 0.08; // Tasa inicial estimada (8% anual, más cercana al ejemplo)
+  let tasaPeriodo = tasaAnual / frecuenciaPago;
 
   for (let i = 0; i < maxIteraciones; i++) {
     const { vpn, derivada } = calcularVPNyDerivada(
