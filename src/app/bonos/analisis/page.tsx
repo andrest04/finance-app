@@ -756,19 +756,7 @@ export default function AnalisisBonosPage() {
                           </div>
                           <p className="text-xs text-slate-500 mt-1">
                             FC_t: Flujo de caja neto del emisor en período t
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-slate-700 mb-1">
-                            TREA (Inversionista):
-                          </p>
-                          <div className="bg-white p-3 rounded border border-slate-200 font-mono text-xs text-slate-700">
-                            VPN = Σ[FC_t / (1+TREA/m)^t] = 0
-                          </div>
-                          <p className="text-xs text-slate-500 mt-1">
-                            FC_t: Flujo de caja neto del inversionista en
-                            período t
-                          </p>
+                          </p>{" "}
                         </div>
                         <div>
                           <p className="text-xs font-medium text-slate-700 mb-1">

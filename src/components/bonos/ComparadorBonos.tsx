@@ -300,16 +300,7 @@ export default function ComparadorBonos({
                     <p className="font-medium">
                       {formatDate(bono.fechaEmision)}
                     </p>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t">
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm text-gray-500">TREA</p>
-                    <p className="font-medium text-blue-600">
-                      {bono.tasaMercado}%
-                    </p>
-                  </div>
+                  </div>{" "}
                 </div>
               </div>
             </Card>
