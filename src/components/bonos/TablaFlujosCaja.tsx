@@ -122,6 +122,7 @@ export default function TablaFlujosCaja({ bono }: TablaFlujosCajaProps) {
         <div className="text-center">
           <p className="text-xs text-blue-600 mb-1">Valor Nominal</p>
           <p className="font-bold text-blue-900">
+            {" "}
             {bono.moneda}{" "}
             {bono.valorNominal.toLocaleString("es-PE", {
               minimumFractionDigits: 2,
@@ -132,12 +133,20 @@ export default function TablaFlujosCaja({ bono }: TablaFlujosCajaProps) {
           <p className="text-xs text-blue-600 mb-1">TEA</p>
           <p className="font-bold text-blue-900">{tea.toFixed(2)}%</p>
         </div>
-        <div className="text-center">
-          <p className="text-xs text-blue-600 mb-1">
-            TES ({getNombreFrecuencia(bono.frecuenciaPago)})
-          </p>
-          <p className="font-bold text-blue-900">{tes.toFixed(6)}%</p>
-        </div>
+        {bono.frecuenciaPago === 2 && (
+          <div className="text-center">
+            <p className="text-xs text-blue-600 mb-1">TES (Semestral)</p>
+            <p className="font-bold text-blue-900">{tes.toFixed(6)}%</p>
+          </div>
+        )}
+        {bono.frecuenciaPago !== 2 && bono.frecuenciaPago !== 1 && (
+          <div className="text-center">
+            <p className="text-xs text-blue-600 mb-1">
+              Tasa {getNombreFrecuencia(bono.frecuenciaPago)}
+            </p>
+            <p className="font-bold text-blue-900">{tes.toFixed(6)}%</p>
+          </div>
+        )}
         <div className="text-center">
           <p className="text-xs text-blue-600 mb-1">Tipo de Gracia</p>
           <p className="font-bold text-blue-900">{bono.tipoGracia}</p>
@@ -151,6 +160,7 @@ export default function TablaFlujosCaja({ bono }: TablaFlujosCajaProps) {
             <div className="overflow-x-auto max-h-96">
               <table className="w-full text-sm">
                 <thead className="bg-blue-100 sticky top-0">
+                  {" "}
                   <tr>
                     <th className="px-3 py-3 text-left text-blue-900 font-semibold">
                       N°
@@ -159,7 +169,9 @@ export default function TablaFlujosCaja({ bono }: TablaFlujosCajaProps) {
                       TEA
                     </th>
                     <th className="px-3 py-3 text-center text-blue-900 font-semibold">
-                      TES
+                      {bono.frecuenciaPago === 2
+                        ? "TES"
+                        : `Tasa ${getNombreFrecuencia(bono.frecuenciaPago)}`}
                     </th>
                     <th className="px-3 py-3 text-center text-blue-900 font-semibold">
                       Plazo Gracia
