@@ -232,61 +232,7 @@ export default function AnalisisBonosPage() {
                           cuotas constantes.
                         </p>
                       </div>
-                    </div>
-                  </Card>
-
-                  {/* Tutorial Visual */}
-                  <Card className="p-6 bg-gradient-to-br from-gray-50 to-slate-50 border-gray-200">
-                    <div className="flex items-center gap-3 mb-4">
-                      <BookOpen className="w-5 h-5 text-gray-600" />
-                      <h3 className="text-lg font-semibold text-gray-800">
-                        ¿Cómo funciona el análisis?
-                      </h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="text-center">
-                        <div className="p-3 bg-blue-100 rounded-lg mb-3 mx-auto w-fit">
-                          <span className="text-blue-600 font-bold text-lg">
-                            1
-                          </span>
-                        </div>
-                        <h4 className="font-medium text-gray-800 mb-2">
-                          Selecciona Bonos
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          Elige uno o más bonos de tu lista para comparar
-                        </p>
-                      </div>
-                      <div className="text-center">
-                        <div className="p-3 bg-green-100 rounded-lg mb-3 mx-auto w-fit">
-                          <span className="text-green-600 font-bold text-lg">
-                            2
-                          </span>
-                        </div>
-                        <h4 className="font-medium text-gray-800 mb-2">
-                          Revisa Cálculos
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          Analiza las tablas de amortización generadas
-                          automáticamente
-                        </p>
-                      </div>
-                      <div className="text-center">
-                        <div className="p-3 bg-purple-100 rounded-lg mb-3 mx-auto w-fit">
-                          <span className="text-purple-600 font-bold text-lg">
-                            3
-                          </span>
-                        </div>
-                        <h4 className="font-medium text-gray-800 mb-2">
-                          Toma Decisiones
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          Compara resultados y elige la mejor opción de
-                          inversión
-                        </p>
-                      </div>
-                    </div>
-                  </Card>
+                    </div>                  </Card>
                 </div>
               )}
             </div>
