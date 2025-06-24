@@ -35,20 +35,21 @@ export function calcularFlujoFrances(params: BonoParams): FlujoPeriodo[] {
     gracia,
     numPeriodosGracia,
   } = params;
-
   const n = plazo * frecuenciaPago;
   const tasaPeriodo = tasaAnual / 100 / frecuenciaPago;
 
-  const cuota =
-    valorNominal * (tasaPeriodo / (1 - Math.pow(1 + tasaPeriodo, -n)));
-
+  // Inicializar variables
   let saldo = valorNominal;
+  let cuota: number;
   const flujo: FlujoPeriodo[] = [];
-  for (let i = 1; i <= n; i++) {
-    const interes = saldo * tasaPeriodo;
-    const amortizacion = cuota - interes;
 
-    if (gracia === "Total" && i <= numPeriodosGracia) {
+  // Para gracia total: primero capitalizar intereses, luego recalcular cuota
+  if (gracia === "Total" && numPeriodosGracia > 0) {
+    // Fase 1: Períodos de gracia total (solo capitalización de intereses)
+    for (let i = 1; i <= numPeriodosGracia; i++) {
+      const interes = saldo * tasaPeriodo;
+      saldo += interes; // Capitalización de interés
+      
       flujo.push({
         periodo: i,
         cuota: 0,
@@ -56,23 +57,54 @@ export function calcularFlujoFrances(params: BonoParams): FlujoPeriodo[] {
         amortizacion: 0,
         saldo,
       });
-    } else if (gracia === "Parcial" && i <= numPeriodosGracia) {
-      flujo.push({
-        periodo: i,
-        cuota: interes,
-        interes,
-        amortizacion: 0,
-        saldo,
-      });
-    } else {
-      saldo -= amortizacion;
-      flujo.push({
-        periodo: i,
-        cuota,
-        interes,
-        amortizacion,
-        saldo: saldo < 1e-6 ? 0 : saldo,
-      });
+    }
+
+    // Fase 2: Recalcular cuota para períodos restantes
+    const periodosRestantes = n - numPeriodosGracia;
+    if (periodosRestantes > 0) {
+      cuota = saldo * (tasaPeriodo / (1 - Math.pow(1 + tasaPeriodo, -periodosRestantes)));
+      
+      // Fase 3: Períodos con pagos normales (método francés)
+      for (let i = numPeriodosGracia + 1; i <= n; i++) {
+        const interes = saldo * tasaPeriodo;
+        const amortizacion = cuota - interes;
+        saldo -= amortizacion;
+        
+        flujo.push({
+          periodo: i,
+          cuota,
+          interes,
+          amortizacion,
+          saldo: saldo < 1e-6 ? 0 : saldo,
+        });
+      }
+    }
+  } else {
+    // Caso normal (sin gracia o gracia parcial)
+    cuota = valorNominal * (tasaPeriodo / (1 - Math.pow(1 + tasaPeriodo, -n)));
+    
+    for (let i = 1; i <= n; i++) {
+      const interes = saldo * tasaPeriodo;
+      const amortizacion = cuota - interes;
+
+      if (gracia === "Parcial" && i <= numPeriodosGracia) {
+        flujo.push({
+          periodo: i,
+          cuota: interes,
+          interes,
+          amortizacion: 0,
+          saldo,
+        });
+      } else {
+        saldo -= amortizacion;
+        flujo.push({
+          periodo: i,
+          cuota,
+          interes,
+          amortizacion,
+          saldo: saldo < 1e-6 ? 0 : saldo,
+        });
+      }
     }
   }
 
