@@ -119,10 +119,10 @@ export default function TablaFlujosCaja({ bono }: TablaFlujosCajaProps) {
 
       {/* Información del Bono */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-white rounded-lg border border-blue-200">
+        {" "}
         <div className="text-center">
           <p className="text-xs text-blue-600 mb-1">Valor Nominal</p>
           <p className="font-bold text-blue-900">
-            {" "}
             {bono.moneda}{" "}
             {bono.valorNominal.toLocaleString("es-PE", {
               minimumFractionDigits: 2,
@@ -158,9 +158,9 @@ export default function TablaFlujosCaja({ bono }: TablaFlujosCajaProps) {
           {/* Tabla de Flujos */}
           <div className="bg-white rounded-lg border border-blue-200 overflow-hidden">
             <div className="overflow-x-auto max-h-96">
+              {" "}
               <table className="w-full text-sm">
                 <thead className="bg-blue-100 sticky top-0">
-                  {" "}
                   <tr>
                     <th className="px-3 py-3 text-left text-blue-900 font-semibold">
                       N°
