@@ -1,4 +1,4 @@
-import BonoFormEnhanced from "@/components/bonos/BonoFormEnhanced";
+import BonoForm from "@/components/bonos/BonoForm";
 import ProtectedRoute from "@/components/auth/RouteGuard";
 
 export default function RegistroBonoPage() {
@@ -21,11 +21,11 @@ export default function RegistroBonoPage() {
                 ⚡ Tiempo Real
               </span>
               <span className="px-3 py-1 bg-purple-100 rounded-full font-medium">
-                🔧 TREA Automática
+                🔧 TCEA Automática
               </span>
             </div>
           </div>
-          <BonoFormEnhanced />
+          <BonoForm />
         </div>
       </main>
     </ProtectedRoute>
