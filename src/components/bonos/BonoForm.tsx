@@ -1122,7 +1122,10 @@ export default function BonoFormEnhanced() {
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Períodos donde se pueden diferir pagos.</p>
-                    <p>• Total: sin pagos | • Parcial: solo intereses | • Sin Gracia: pagos normales</p>
+                    <p>
+                      • Total: sin pagos | • Parcial: solo intereses | • Sin
+                      Gracia: pagos normales
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -1134,7 +1137,11 @@ export default function BonoFormEnhanced() {
                     Configuración de Gracia
                   </Label>
                   <div className="flex items-center gap-3">
-                    <span className={`text-sm font-medium ${!esGraciaDinamica ? 'text-blue-600' : 'text-gray-500'}`}>
+                    <span
+                      className={`text-sm font-medium ${
+                        !esGraciaDinamica ? "text-blue-600" : "text-gray-500"
+                      }`}
+                    >
                       Básica
                     </span>
                     <Switch
@@ -1143,20 +1150,30 @@ export default function BonoFormEnhanced() {
                         setEsGraciaDinamica(checked);
                         form.setValue("esGraciaDinamica", checked);
                         if (!checked) {
-                          setGraciasPeriodo([{ id: "1", desde: 1, hasta: 1, tipoGracia: "Sin Gracia" }]);
+                          setGraciasPeriodo([
+                            {
+                              id: "1",
+                              desde: 1,
+                              hasta: 1,
+                              tipoGracia: "Sin Gracia",
+                            },
+                          ]);
                         }
                       }}
                     />
-                    <span className={`text-sm font-medium ${esGraciaDinamica ? 'text-orange-600' : 'text-gray-500'}`}>
+                    <span
+                      className={`text-sm font-medium ${
+                        esGraciaDinamica ? "text-orange-600" : "text-gray-500"
+                      }`}
+                    >
                       Avanzada
                     </span>
                   </div>
                 </div>
                 <p className="text-sm text-gray-600">
-                  {esGraciaDinamica 
+                  {esGraciaDinamica
                     ? "Configure diferentes tipos de gracia para períodos específicos del bono."
-                    : "Configure un solo tipo de gracia que se aplicará a todos los períodos especificados."
-                  }
+                    : "Configure un solo tipo de gracia que se aplicará a todos los períodos especificados."}
                 </p>
               </div>
 
@@ -1171,15 +1188,21 @@ export default function BonoFormEnhanced() {
                       </Label>
                       <Select
                         value={form.watch("tipoGracia")}
-                        onValueChange={(value) => form.setValue("tipoGracia", value)}
+                        onValueChange={(value) =>
+                          form.setValue("tipoGracia", value)
+                        }
                       >
                         <SelectTrigger className="border-gray-300 focus:border-blue-500">
                           <SelectValue placeholder="Seleccione tipo de gracia" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Sin Gracia">Sin Gracia</SelectItem>
-                          <SelectItem value="Total">Gracia Total (sin pagos)</SelectItem>
-                          <SelectItem value="Parcial">Gracia Parcial (solo intereses)</SelectItem>
+                          <SelectItem value="Total">
+                            Gracia Total (sin pagos)
+                          </SelectItem>
+                          <SelectItem value="Parcial">
+                            Gracia Parcial (solo intereses)
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                       {form.formState.errors.tipoGracia && (
@@ -1201,8 +1224,12 @@ export default function BonoFormEnhanced() {
                           min="0"
                           max={(() => {
                             const plazo = parseInt(watchedValues.plazo || "0");
-                            const frecuencia = parseInt(watchedValues.frecuenciaPago || "1");
-                            return plazo > 0 && frecuencia > 0 ? plazo * frecuencia : undefined;
+                            const frecuencia = parseInt(
+                              watchedValues.frecuenciaPago || "1"
+                            );
+                            return plazo > 0 && frecuencia > 0
+                              ? plazo * frecuencia
+                              : undefined;
                           })()}
                           placeholder="Ej: 2"
                           className="border-gray-300 focus:border-blue-500"
@@ -1216,29 +1243,45 @@ export default function BonoFormEnhanced() {
 
                         {/* Validación en tiempo real simplificada */}
                         {(() => {
-                          const nGraciaValue = parseInt(watchedValues.nGracia || "0");
+                          const nGraciaValue = parseInt(
+                            watchedValues.nGracia || "0"
+                          );
                           const plazo = parseInt(watchedValues.plazo || "0");
-                          const frecuencia = parseInt(watchedValues.frecuenciaPago || "1");
-                          const totalPeriodos = plazo > 0 && frecuencia > 0 ? plazo * frecuencia : 0;
-                          
-                          const validacion = validarPeriodosGracia(nGraciaValue, totalPeriodos, tipoGracia);
-                          
+                          const frecuencia = parseInt(
+                            watchedValues.frecuenciaPago || "1"
+                          );
+                          const totalPeriodos =
+                            plazo > 0 && frecuencia > 0
+                              ? plazo * frecuencia
+                              : 0;
+
+                          const validacion = validarPeriodosGracia(
+                            nGraciaValue,
+                            totalPeriodos,
+                            tipoGracia
+                          );
+
                           if (!validacion.mensaje) return null;
-                          
+
                           const estilos = {
                             error: "bg-red-50 border-red-200 text-red-700",
-                            success: "bg-green-50 border-green-200 text-green-700", 
-                            info: "bg-blue-50 border-blue-200 text-blue-700"
+                            success:
+                              "bg-green-50 border-green-200 text-green-700",
+                            info: "bg-blue-50 border-blue-200 text-blue-700",
                           };
-                          
+
                           const iconos = {
                             error: <AlertCircle className="w-4 h-4" />,
                             success: <CheckCircle className="w-4 h-4" />,
-                            info: <Info className="w-4 h-4" />
+                            info: <Info className="w-4 h-4" />,
                           };
-                          
+
                           return (
-                            <div className={`p-2 rounded border ${estilos[validacion.tipo]}`}>
+                            <div
+                              className={`p-2 rounded border ${
+                                estilos[validacion.tipo]
+                              }`}
+                            >
                               <p className={`text-xs flex items-center gap-1`}>
                                 {iconos[validacion.tipo]}
                                 {validacion.mensaje}
@@ -1350,7 +1393,9 @@ export default function BonoFormEnhanced() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="Sin Gracia">Sin Gracia</SelectItem>
+                                <SelectItem value="Sin Gracia">
+                                  Sin Gracia
+                                </SelectItem>
                                 <SelectItem value="Parcial">Parcial</SelectItem>
                                 <SelectItem value="Total">Total</SelectItem>
                               </SelectContent>
@@ -1360,10 +1405,14 @@ export default function BonoFormEnhanced() {
 
                         {/* Validación simplificada */}
                         {(() => {
-                          const errorValidacion = validarGraciaContraTotalPeriodos(gracia);
-                          const errorSolapamiento = validarSolapamientosGracia(gracia, graciasPeriodo);
+                          const errorValidacion =
+                            validarGraciaContraTotalPeriodos(gracia);
+                          const errorSolapamiento = validarSolapamientosGracia(
+                            gracia,
+                            graciasPeriodo
+                          );
                           const error = errorValidacion || errorSolapamiento;
-                          
+
                           if (error) {
                             return (
                               <div className="mt-2 p-2 bg-red-50 rounded border border-red-200">
@@ -1374,29 +1423,39 @@ export default function BonoFormEnhanced() {
                               </div>
                             );
                           }
-                          
+
                           const plazo = parseInt(watchedValues.plazo || "0");
-                          const frecuencia = parseInt(watchedValues.frecuenciaPago || "1");
-                          const totalPeriodos = plazo > 0 && frecuencia > 0 ? plazo * frecuencia : 0;
-                          
-                          if (totalPeriodos > 0 && gracia.desde > 0 && gracia.hasta > 0) {
+                          const frecuencia = parseInt(
+                            watchedValues.frecuenciaPago || "1"
+                          );
+                          const totalPeriodos =
+                            plazo > 0 && frecuencia > 0
+                              ? plazo * frecuencia
+                              : 0;
+
+                          if (
+                            totalPeriodos > 0 &&
+                            gracia.desde > 0 &&
+                            gracia.hasta > 0
+                          ) {
                             return (
                               <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
                                 <p className="text-xs text-green-600 flex items-center gap-1">
                                   <CheckCircle className="w-3 h-3" />
-                                  Períodos {gracia.desde}-{gracia.hasta}: {gracia.tipoGracia}
+                                  Períodos {gracia.desde}-{gracia.hasta}:{" "}
+                                  {gracia.tipoGracia}
                                 </p>
                               </div>
                             );
                           }
-                          
+
                           return null;
                         })()}
                       </div>
                     ))}
                   </div>
                 </div>
-                )}
+              )}
             </Card>
             {/* COSTOS DEL EMISOR */}
             <Card className="p-6 border-purple-300 bg-white shadow-sm">
