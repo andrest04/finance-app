@@ -5,7 +5,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, Eye, EyeOff, Calculator, TrendingUp } from "lucide-react";
 import type { BonoData } from "@/lib/bonoUtils";
-import { calcularFlujoFrances, FlujoPeriodo } from "@/lib/francesMetod";
+import {
+  calcularFlujoFrances,
+  calcularFlujoFrancesDinamico,
+  FlujoPeriodo,
+} from "@/lib/francesMetod";
 
 interface TablaFlujosCajaProps {
   bono: BonoData & { id: string };
@@ -47,8 +51,44 @@ export default function TablaFlujosCaja({ bono }: TablaFlujosCajaProps) {
   };
 
   // Calcular flujos de caja
-  const flujos = calcularFlujoFrances(parametrosFlujo);
+  let flujos: FlujoPeriodo[];
+
+  // Verificar si el bono tiene gracia dinámica
+  if (
+    bono.esGraciaDinamica &&
+    bono.graciasPorPeriodo &&
+    bono.graciasPorPeriodo.length > 0
+  ) {
+    // Usar función de gracia dinámica
+    const parametrosDinamicos = {
+      valorNominal: bono.valorNominal,
+      tasaAnual: bono.tasaAnual,
+      frecuenciaPago: bono.frecuenciaPago,
+      plazo: bono.plazo,
+      graciasPorPeriodo: bono.graciasPorPeriodo,
+    };
+    flujos = calcularFlujoFrancesDinamico(parametrosDinamicos);
+  } else {
+    // Usar función tradicional
+    flujos = calcularFlujoFrances(parametrosFlujo);
+  }
   const { tea, tes } = calcularTasas();
+
+  // Función para obtener el tipo de gracia de un período específico
+  const getTipoGraciaPorPeriodo = (periodo: number): string => {
+    if (!bono.esGraciaDinamica || !bono.graciasPorPeriodo) {
+      return bono.tipoGracia;
+    }
+
+    // Buscar en los rangos de gracia dinámica
+    for (const rango of bono.graciasPorPeriodo) {
+      if (periodo >= rango.desde && periodo <= rango.hasta) {
+        return rango.tipoGracia;
+      }
+    }
+
+    return "Sin Gracia";
+  };
 
   // Extender flujos con información adicional
   const flujosExtendidos: FlujoExtendido[] = flujos.map((flujo, index) => ({
@@ -149,7 +189,9 @@ export default function TablaFlujosCaja({ bono }: TablaFlujosCajaProps) {
         )}
         <div className="text-center">
           <p className="text-xs text-blue-600 mb-1">Tipo de Gracia</p>
-          <p className="font-bold text-blue-900">{bono.tipoGracia}</p>
+          <p className="font-bold text-blue-900">
+            {bono.esGraciaDinamica ? "Gracia Dinámica" : bono.tipoGracia}
+          </p>
         </div>
       </div>
 
@@ -174,7 +216,7 @@ export default function TablaFlujosCaja({ bono }: TablaFlujosCajaProps) {
                         : `Tasa ${getNombreFrecuencia(bono.frecuenciaPago)}`}
                     </th>
                     <th className="px-3 py-3 text-center text-blue-900 font-semibold">
-                      Plazo Gracia
+                      {bono.esGraciaDinamica ? "Tipo Gracia" : "Plazo Gracia"}
                     </th>
                     <th className="px-3 py-3 text-right text-blue-900 font-semibold">
                       Saldo Inicial
@@ -198,7 +240,14 @@ export default function TablaFlujosCaja({ bono }: TablaFlujosCajaProps) {
                     <tr
                       key={index}
                       className={`hover:bg-blue-50 ${
-                        flujo.plazoGracia > 0 ? "bg-yellow-50" : ""
+                        bono.esGraciaDinamica
+                          ? getTipoGraciaPorPeriodo(flujo.periodo) !==
+                            "Sin Gracia"
+                            ? "bg-yellow-50"
+                            : ""
+                          : flujo.plazoGracia > 0
+                          ? "bg-yellow-50"
+                          : ""
                       }`}
                     >
                       <td className="px-3 py-2 font-medium text-blue-900">
@@ -211,7 +260,11 @@ export default function TablaFlujosCaja({ bono }: TablaFlujosCajaProps) {
                         {flujo.tes.toFixed(4)}%
                       </td>
                       <td className="px-3 py-2 text-center text-blue-800">
-                        {flujo.plazoGracia > 0 ? flujo.plazoGracia : "-"}
+                        {bono.esGraciaDinamica
+                          ? getTipoGraciaPorPeriodo(flujo.periodo)
+                          : flujo.plazoGracia > 0
+                          ? flujo.plazoGracia
+                          : "-"}
                       </td>
                       <td className="px-3 py-2 text-right text-blue-800">
                         {(index === 0

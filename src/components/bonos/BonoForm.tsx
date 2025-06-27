@@ -45,7 +45,10 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
-import { calcularFlujoFrances } from "@/lib/francesMetod";
+import {
+  calcularFlujoFrances,
+  calcularFlujoFrancesDinamico,
+} from "@/lib/francesMetod";
 import {
   calcularDuracion,
   calcularConvexidad,
@@ -144,15 +147,17 @@ const bonoFormSchema = z
     const plazo = parseInt(data.plazo || "0");
     const frecuencia = parseInt(data.frecuenciaPago || "1");
 
-    if (isNaN(nGracia) || nGracia < 0) {
+    // Validar que nGracia sea un número válido
+    if (data.nGracia && (isNaN(nGracia) || nGracia < 0)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["nGracia"],
         message:
-          "Los períodos de gracia deben ser un número válido y no negativo",
+          "Los períodos de gracia deben ser un número válido y mayor o igual a 0",
       });
     }
 
+    // Validar coherencia con tipo de gracia
     if (
       (data.tipoGracia === "Sin Gracia" || data.tipoGracia === "Ninguno") &&
       nGracia > 0
@@ -164,15 +169,28 @@ const bonoFormSchema = z
       });
     }
 
+    // Validar que no exceda el total de períodos
     if (plazo > 0 && frecuencia > 0) {
       const totalPeriodos = plazo * frecuencia;
       if (nGracia > totalPeriodos) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["nGracia"],
-          message: `Los períodos de gracia no pueden exceder ${totalPeriodos} (total de períodos)`,
+          message: `Los períodos de gracia (${nGracia}) no pueden exceder el total de períodos (${totalPeriodos})`,
         });
       }
+    }
+
+    // Validar coherencia con tipo de gracia cuando se requiere gracia
+    if (
+      (data.tipoGracia === "Parcial" || data.tipoGracia === "Total") &&
+      nGracia === 0
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["nGracia"],
+        message: `Debe especificar al menos 1 período de gracia para el tipo "${data.tipoGracia}"`,
+      });
     }
   });
 
@@ -207,7 +225,76 @@ export default function BonoFormEnhanced() {
   const [graciasPeriodo, setGraciasPeriodo] = useState<GraciaPeriodoBono[]>([
     { id: "1", desde: 1, hasta: 1, tipoGracia: "Sin Gracia" },
   ]);
-  const router = useRouter(); // Form setup
+  const router = useRouter();
+
+  // Utility function for validating grace periods
+  const validarPeriodosGracia = (
+    periodos: number,
+    totalPeriodos: number,
+    tipoGracia?: string
+  ): {
+    esValido: boolean;
+    mensaje: string;
+    tipo: "error" | "success" | "info";
+  } => {
+    if (totalPeriodos === 0) {
+      return {
+        esValido: false,
+        mensaje: "Complete plazo y frecuencia para validar períodos de gracia",
+        tipo: "info",
+      };
+    }
+
+    if (isNaN(periodos) || periodos < 0) {
+      return {
+        esValido: false,
+        mensaje:
+          "Los períodos de gracia deben ser un número válido y mayor o igual a 0",
+        tipo: "error",
+      };
+    }
+
+    if (tipoGracia === "Sin Gracia" && periodos > 0) {
+      return {
+        esValido: false,
+        mensaje: "Los períodos de gracia deben ser 0 cuando no hay gracia",
+        tipo: "error",
+      };
+    }
+
+    if (
+      (tipoGracia === "Parcial" || tipoGracia === "Total") &&
+      periodos === 0
+    ) {
+      return {
+        esValido: false,
+        mensaje: `Debe especificar al menos 1 período de gracia para el tipo "${tipoGracia}"`,
+        tipo: "error",
+      };
+    }
+
+    if (periodos > totalPeriodos) {
+      return {
+        esValido: false,
+        mensaje: `Los períodos de gracia (${periodos}) no pueden exceder el total de períodos (${totalPeriodos})`,
+        tipo: "error",
+      };
+    }
+
+    if (periodos > 0 && periodos <= totalPeriodos) {
+      return {
+        esValido: true,
+        mensaje: `Períodos de gracia válidos: ${periodos} de ${totalPeriodos} períodos totales`,
+        tipo: "success",
+      };
+    }
+
+    return {
+      esValido: true,
+      mensaje: "",
+      tipo: "info",
+    };
+  }; // Form setup
   const form = useForm<BonoFormData>({
     resolver: zodResolver(bonoFormSchema),
     defaultValues: {
@@ -230,10 +317,37 @@ export default function BonoFormEnhanced() {
 
   // Functions for dynamic grace periods
   const agregarGraciaPeriodo = () => {
+    // Encontrar el siguiente rango disponible
+    const plazo = parseInt(watchedValues.plazo || "0");
+    const frecuencia = parseInt(watchedValues.frecuenciaPago || "1");
+    const totalPeriodos = plazo > 0 && frecuencia > 0 ? plazo * frecuencia : 0;
+
+    let siguienteDesde = 1;
+    let siguienteHasta = 1;
+
+    if (totalPeriodos > 0) {
+      // Obtener todos los períodos ocupados
+      const periodosOcupados = new Set<number>();
+      graciasPeriodo.forEach((rango) => {
+        for (let i = rango.desde; i <= rango.hasta; i++) {
+          periodosOcupados.add(i);
+        }
+      });
+
+      // Encontrar el primer período libre
+      for (let i = 1; i <= totalPeriodos; i++) {
+        if (!periodosOcupados.has(i)) {
+          siguienteDesde = i;
+          siguienteHasta = i;
+          break;
+        }
+      }
+    }
+
     const nuevaGracia: GraciaPeriodoBono = {
       id: Date.now().toString(),
-      desde: 1,
-      hasta: 1,
+      desde: siguienteDesde,
+      hasta: siguienteHasta,
       tipoGracia: "Sin Gracia",
     };
     setGraciasPeriodo([...graciasPeriodo, nuevaGracia]);
@@ -253,48 +367,92 @@ export default function BonoFormEnhanced() {
     );
   };
 
-  // Watch form values for real-time updates
-  const watchedValues = form.watch();
-  const tipoGracia = form.watch("tipoGracia");
-  // Calculate completion percentage
-  const completionPercentage = useMemo(() => {
-    const baseFields = [
-      "nombre",
-      "valorNominal",
-      "moneda",
-      "tipoTasa",
-      "tasaAnual",
-      "frecuenciaPago",
-      "plazo",
-      "fechaEmision",
-      "comisionEmisor",
-      "comisionBonista",
-    ];
+  // Validar períodos de gracia contra total de períodos
+  const validarGraciaContraTotalPeriodos = (
+    gracia: GraciaPeriodoBono
+  ): string | null => {
+    const plazo = parseInt(watchedValues.plazo || "0");
+    const frecuencia = parseInt(watchedValues.frecuenciaPago || "1");
 
-    // Add tipoGracia as required only if not using dynamic grace
-    const requiredFields = esGraciaDinamica
-      ? baseFields
-      : [...baseFields, "tipoGracia"];
+    if (plazo > 0 && frecuencia > 0) {
+      const totalPeriodos = plazo * frecuencia;
 
-    const completedFields = requiredFields.filter((field) => {
-      const value = watchedValues[field as keyof BonoFormData];
-      return value && typeof value === "string" && value.trim() !== "";
-    }).length;
+      if (gracia.desde > totalPeriodos) {
+        return `Período 'desde' (${gracia.desde}) no puede exceder el total de períodos (${totalPeriodos})`;
+      }
 
-    // For dynamic grace, also check if at least one grace period is configured
-    if (esGraciaDinamica) {
-      const hasValidGrace = graciasPeriodo.some(
-        (periodo) => periodo.desde > 0 && periodo.hasta > 0
-      );
-      if (!hasValidGrace) {
-        return Math.round(
-          (completedFields / (requiredFields.length + 1)) * 100
-        );
+      if (gracia.hasta > totalPeriodos) {
+        return `Período 'hasta' (${gracia.hasta}) no puede exceder el total de períodos (${totalPeriodos})`;
+      }
+
+      if (gracia.desde > gracia.hasta) {
+        return `Período 'desde' (${gracia.desde}) no puede ser mayor que 'hasta' (${gracia.hasta})`;
       }
     }
 
-    return Math.round((completedFields / requiredFields.length) * 100);
-  }, [watchedValues, esGraciaDinamica, graciasPeriodo]);
+    return null;
+  };
+
+  // Validar solapamientos entre rangos de gracia dinámica
+  const validarSolapamientosGracia = (
+    graciaActual: GraciaPeriodoBono,
+    todosLosRangos: GraciaPeriodoBono[]
+  ): string | null => {
+    // Filtrar otros rangos (excluyendo el actual)
+    const otrosRangos = todosLosRangos.filter((g) => g.id !== graciaActual.id);
+
+    for (const otroRango of otrosRangos) {
+      // Verificar si hay solapamiento
+      const hayConflicto =
+        (graciaActual.desde >= otroRango.desde &&
+          graciaActual.desde <= otroRango.hasta) ||
+        (graciaActual.hasta >= otroRango.desde &&
+          graciaActual.hasta <= otroRango.hasta) ||
+        (graciaActual.desde <= otroRango.desde &&
+          graciaActual.hasta >= otroRango.hasta);
+
+      if (hayConflicto) {
+        return `El rango ${graciaActual.desde}-${graciaActual.hasta} se solapa con el rango ${otroRango.desde}-${otroRango.hasta}`;
+      }
+    }
+
+    return null;
+  };
+
+  // Obtener valores mínimos y máximos permitidos para evitar solapamientos
+  const obtenerLimitesInput = (
+    graciaActual: GraciaPeriodoBono,
+    campo: "desde" | "hasta"
+  ) => {
+    const plazo = parseInt(watchedValues.plazo || "0");
+    const frecuencia = parseInt(watchedValues.frecuenciaPago || "1");
+    const totalPeriodos = plazo > 0 && frecuencia > 0 ? plazo * frecuencia : 0;
+
+    if (totalPeriodos === 0) return { min: 1, max: undefined };
+
+    if (campo === "desde") {
+      // Para "desde": no puede empezar en un período ya ocupado
+      const min = 1;
+      let max = totalPeriodos;
+
+      // Si hay un "hasta" definido, el "desde" no puede ser mayor
+      if (graciaActual.hasta > 0) {
+        max = Math.min(max, graciaActual.hasta);
+      }
+
+      return { min, max };
+    } else {
+      // Para "hasta": debe ser >= desde
+      const min = Math.max(1, graciaActual.desde || 1);
+      const max = totalPeriodos;
+
+      return { min, max };
+    }
+  };
+
+  // Watch form values for real-time updates
+  const watchedValues = form.watch();
+  const tipoGracia = form.watch("tipoGracia");
 
   // Generate preview of periods for dynamic grace
   const generarVistaGraciaPeriodos = useMemo(() => {
@@ -390,14 +548,36 @@ export default function BonoFormEnhanced() {
         return "Ninguno";
       };
 
-      const flujos = calcularFlujoFrances({
-        valorNominal: bonoData.valorNominal,
-        tasaAnual: bonoData.tasaAnual,
-        frecuenciaPago: bonoData.frecuenciaPago,
-        plazo: bonoData.plazo,
-        gracia: mapGracia(bonoData.tipoGracia),
-        numPeriodosGracia: bonoData.nGracia || 0,
-      });
+      let flujos;
+      // Check if dynamic grace is enabled and has grace periods configured
+      if (
+        esGraciaDinamica &&
+        graciasPeriodo.length > 0 &&
+        graciasPeriodo.some((g) => g.desde > 0 && g.hasta > 0)
+      ) {
+        // Use dynamic grace calculation
+        flujos = calcularFlujoFrancesDinamico({
+          valorNominal: bonoData.valorNominal,
+          tasaAnual: bonoData.tasaAnual,
+          frecuenciaPago: bonoData.frecuenciaPago,
+          plazo: bonoData.plazo,
+          graciasPorPeriodo: graciasPeriodo.map((g) => ({
+            desde: g.desde,
+            hasta: g.hasta,
+            tipoGracia: g.tipoGracia,
+          })),
+        });
+      } else {
+        // Use traditional static grace calculation
+        flujos = calcularFlujoFrances({
+          valorNominal: bonoData.valorNominal,
+          tasaAnual: bonoData.tasaAnual,
+          frecuenciaPago: bonoData.frecuenciaPago,
+          plazo: bonoData.plazo,
+          gracia: mapGracia(bonoData.tipoGracia),
+          numPeriodosGracia: bonoData.nGracia || 0,
+        });
+      }
       const totalPeriodos = flujos.length;
       const cuotaConstante = flujos.length > 0 ? flujos[0].cuota : 0;
       const totalIntereses = flujos.reduce((sum, f) => sum + f.interes, 0);
@@ -431,7 +611,7 @@ export default function BonoFormEnhanced() {
       console.error("Error calculating metrics:", error);
       return null;
     }
-  }, [watchedValues, firebaseUser]);
+  }, [watchedValues, firebaseUser, esGraciaDinamica, graciasPeriodo]);
 
   // Load user settings
   useEffect(() => {
@@ -465,6 +645,12 @@ export default function BonoFormEnhanced() {
   useEffect(() => {
     if (tipoGracia === "Sin Gracia") {
       form.setValue("nGracia", "0");
+    } else if (tipoGracia === "Parcial" || tipoGracia === "Total") {
+      // Si se selecciona gracia pero no hay valor, sugerir un valor por defecto
+      const currentValue = form.getValues("nGracia");
+      if (!currentValue || currentValue === "0") {
+        form.setValue("nGracia", "1");
+      }
     }
   }, [tipoGracia, form]);
   const onSubmit = async (data: BonoFormData) => {
@@ -481,6 +667,38 @@ export default function BonoFormEnhanced() {
       if (!hasValidGrace) {
         toast.error("Debe configurar al menos un rango de gracia válido.");
         return;
+      }
+
+      // Validar que los períodos de gracia no excedan el total
+      for (const gracia of graciasPeriodo) {
+        const errorValidacion = validarGraciaContraTotalPeriodos(gracia);
+        if (errorValidacion) {
+          toast.error(`Error en período de gracia: ${errorValidacion}`);
+          return;
+        }
+      }
+
+      // Validar que no haya solapamientos en los rangos
+      for (let i = 0; i < graciasPeriodo.length; i++) {
+        for (let j = i + 1; j < graciasPeriodo.length; j++) {
+          const gracia1 = graciasPeriodo[i];
+          const gracia2 = graciasPeriodo[j];
+
+          if (
+            (gracia1.desde <= gracia2.hasta &&
+              gracia1.hasta >= gracia2.desde) ||
+            (gracia2.desde <= gracia1.hasta && gracia2.hasta >= gracia1.desde)
+          ) {
+            toast.error(
+              `Los rangos de gracia se solapan: Rango ${i + 1} (${
+                gracia1.desde
+              }-${gracia1.hasta}) y Rango ${j + 1} (${gracia2.desde}-${
+                gracia2.hasta
+              })`
+            );
+            return;
+          }
+        }
       }
     }
 
@@ -555,58 +773,6 @@ export default function BonoFormEnhanced() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Progress Bar */}
-      <Card className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Calculator className="w-5 h-5 text-blue-600" />
-            <span className="font-semibold text-blue-900">
-              Progreso del Formulario
-            </span>
-          </div>
-          <div className="flex-1">
-            <div className="w-full bg-blue-100 rounded-full h-3">
-              <div
-                className="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${completionPercentage}%` }}
-              />
-            </div>
-          </div>
-          <span className="text-sm font-medium text-blue-700">
-            {completionPercentage}%
-          </span>
-        </div>
-        {completionPercentage === 100 && (
-          <div className="mt-2 flex items-center gap-2 text-green-700">
-            <CheckCircle className="w-4 h-4" />{" "}
-            <span className="text-sm font-medium">
-              ¡Formulario completo! Listo para registrar.
-            </span>
-          </div>
-        )}
-      </Card>
-
-      {/* Validation Info */}
-      <Card className="p-4 bg-green-50 border-green-200">
-        <div className="flex items-start gap-3">
-          <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-          <div>
-            <h3 className="text-sm font-semibold text-green-800 mb-1">
-              ✅ Validaciones Mejoradas Activas
-            </h3>
-            <ul className="text-sm text-green-700 space-y-1">
-              <li>• Valores numéricos validados (sin negativos ni extremos)</li>
-              <li>• Frecuencias limitadas: solo anual (1) y semestral (2)</li>
-              <li>
-                • Comisiones máximas: 10% para estructuración y colocación
-              </li>
-              <li>• Períodos de gracia automáticamente controlados</li>
-              <li>• CAVALI fijo: 0.50% (según normativa)</li>
-            </ul>
-          </div>
-        </div>
-      </Card>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Form */}
         <div className="lg:col-span-2">
@@ -673,15 +839,6 @@ export default function BonoFormEnhanced() {
                       <SelectItem value="10000">
                         {watchedValues.moneda || "PEN"} 10,000
                       </SelectItem>
-                      <SelectItem value="20000">
-                        {watchedValues.moneda || "PEN"} 20,000
-                      </SelectItem>
-                      <SelectItem value="50000">
-                        {watchedValues.moneda || "PEN"} 50,000
-                      </SelectItem>
-                      <SelectItem value="100000">
-                        {watchedValues.moneda || "PEN"} 100,000
-                      </SelectItem>
                     </SelectContent>
                   </Select>
                   {form.formState.errors.valorNominal && (
@@ -700,10 +857,10 @@ export default function BonoFormEnhanced() {
                       </div>
                     )}
                   {watchedValues.valorNominal &&
-                    parseFloat(watchedValues.valorNominal) > 50000 && (
+                    parseFloat(watchedValues.valorNominal) > 10000 && (
                       <div className="mt-2 text-xs text-orange-600 flex items-center gap-1">
                         <AlertCircle className="w-3 h-3" />
-                        Valor alto - Verifique el monto
+                        Valor excede el máximo permitido (10,000)
                       </div>
                     )}
                 </div>
@@ -964,36 +1121,35 @@ export default function BonoFormEnhanced() {
                     <Info className="w-4 h-4 text-orange-400 cursor-pointer" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Período inicial donde se pueden diferir pagos.</p>
-                    <p>Total: sin pagos | Parcial: solo intereses</p>
+                    <p>Períodos donde se pueden diferir pagos.</p>
+                    <p>
+                      • Total: sin pagos | • Parcial: solo intereses | • Sin
+                      Gracia: pagos normales
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* Switch para Gracia Dinámica */}
-                <div className="col-span-2 p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center">
-                        <TrendingUp className="w-4 h-4 text-white" />
-                      </div>
-                      <div>
-                        <Label className="text-sm font-semibold text-gray-800">
-                          Período de Gracia Dinámico
-                        </Label>
-                        <p className="text-xs text-gray-600">
-                          Permitir diferentes tipos de gracia por períodos
-                        </p>
-                      </div>
-                    </div>
+              {/* Selector de Modo - Simplificado */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <Label className="text-base font-semibold text-gray-800">
+                    Configuración de Gracia
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`text-sm font-medium ${
+                        !esGraciaDinamica ? "text-blue-600" : "text-gray-500"
+                      }`}
+                    >
+                      Básica
+                    </span>
                     <Switch
                       checked={esGraciaDinamica}
                       onCheckedChange={(checked) => {
                         setEsGraciaDinamica(checked);
                         form.setValue("esGraciaDinamica", checked);
                         if (!checked) {
-                          // Reset to single grace type
                           setGraciasPeriodo([
                             {
                               id: "1",
@@ -1005,12 +1161,27 @@ export default function BonoFormEnhanced() {
                         }
                       }}
                     />
+                    <span
+                      className={`text-sm font-medium ${
+                        esGraciaDinamica ? "text-orange-600" : "text-gray-500"
+                      }`}
+                    >
+                      Avanzada
+                    </span>
                   </div>
                 </div>
+                <p className="text-sm text-gray-600">
+                  {esGraciaDinamica
+                    ? "Configure diferentes tipos de gracia para períodos específicos del bono."
+                    : "Configure un solo tipo de gracia que se aplicará a todos los períodos especificados."}
+                </p>
+              </div>
 
-                {/* Gracia Fija o Dinámica */}
-                {!esGraciaDinamica ? (
-                  <>
+              {/* Configuración según el modo seleccionado */}
+              {!esGraciaDinamica ? (
+                /* MODO BÁSICO - SIMPLIFICADO */
+                <div className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm font-semibold text-gray-700">
                         Tipo de Gracia *
@@ -1022,15 +1193,15 @@ export default function BonoFormEnhanced() {
                         }
                       >
                         <SelectTrigger className="border-gray-300 focus:border-blue-500">
-                          <SelectValue placeholder="Tipo de gracia" />
+                          <SelectValue placeholder="Seleccione tipo de gracia" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Sin Gracia">
-                            🚫 Sin Gracia
+                          <SelectItem value="Sin Gracia">Sin Gracia</SelectItem>
+                          <SelectItem value="Total">
+                            Gracia Total (sin pagos)
                           </SelectItem>
-                          <SelectItem value="Total">⏸️ Gracia Total</SelectItem>
                           <SelectItem value="Parcial">
-                            ⏯️ Gracia Parcial
+                            Gracia Parcial (solo intereses)
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -1051,7 +1222,16 @@ export default function BonoFormEnhanced() {
                           {...form.register("nGracia")}
                           type="number"
                           min="0"
-                          placeholder="2"
+                          max={(() => {
+                            const plazo = parseInt(watchedValues.plazo || "0");
+                            const frecuencia = parseInt(
+                              watchedValues.frecuenciaPago || "1"
+                            );
+                            return plazo > 0 && frecuencia > 0
+                              ? plazo * frecuencia
+                              : undefined;
+                          })()}
+                          placeholder="Ej: 2"
                           className="border-gray-300 focus:border-blue-500"
                         />
                         {form.formState.errors.nGracia && (
@@ -1060,180 +1240,223 @@ export default function BonoFormEnhanced() {
                             {form.formState.errors.nGracia.message}
                           </p>
                         )}
+
+                        {/* Validación en tiempo real simplificada */}
+                        {(() => {
+                          const nGraciaValue = parseInt(
+                            watchedValues.nGracia || "0"
+                          );
+                          const plazo = parseInt(watchedValues.plazo || "0");
+                          const frecuencia = parseInt(
+                            watchedValues.frecuenciaPago || "1"
+                          );
+                          const totalPeriodos =
+                            plazo > 0 && frecuencia > 0
+                              ? plazo * frecuencia
+                              : 0;
+
+                          const validacion = validarPeriodosGracia(
+                            nGraciaValue,
+                            totalPeriodos,
+                            tipoGracia
+                          );
+
+                          if (!validacion.mensaje) return null;
+
+                          const estilos = {
+                            error: "bg-red-50 border-red-200 text-red-700",
+                            success:
+                              "bg-green-50 border-green-200 text-green-700",
+                            info: "bg-blue-50 border-blue-200 text-blue-700",
+                          };
+
+                          const iconos = {
+                            error: <AlertCircle className="w-4 h-4" />,
+                            success: <CheckCircle className="w-4 h-4" />,
+                            info: <Info className="w-4 h-4" />,
+                          };
+
+                          return (
+                            <div
+                              className={`p-2 rounded border ${
+                                estilos[validacion.tipo]
+                              }`}
+                            >
+                              <p className={`text-xs flex items-center gap-1`}>
+                                {iconos[validacion.tipo]}
+                                {validacion.mensaje}
+                              </p>
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
-                  </>
-                ) : (
-                  /* Configuración de Períodos de Gracia Variables */
-                  <div className="col-span-2 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-gradient-to-r from-orange-500 to-amber-500 p-2 rounded-lg shadow-lg">
-                          <TrendingUp className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                          <h4 className="text-lg font-bold text-gray-800">
-                            Períodos de Gracia Variables
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            Configure los tipos de gracia por rangos de tiempo
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        onClick={agregarGraciaPeriodo}
-                        className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-                        size="sm"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Agregar Rango
-                      </Button>
-                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* MODO AVANZADO - SIMPLIFICADO */
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-base font-semibold text-gray-800">
+                      Configuración por Períodos
+                    </h4>
+                    <Button
+                      type="button"
+                      onClick={agregarGraciaPeriodo}
+                      className="bg-orange-500 hover:bg-orange-600 text-white"
+                      size="sm"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Agregar
+                    </Button>
+                  </div>
 
-                    <div className="space-y-4">
-                      {graciasPeriodo.map((gracia, index) => (
-                        <div
-                          key={gracia.id}
-                          className="bg-white rounded-xl border-2 border-gray-100 hover:border-orange-200 p-5 transition-all duration-200 shadow-sm hover:shadow-md"
-                        >
-                          <div className="flex justify-between items-center mb-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                                {index + 1}
-                              </div>
-                              <div>
-                                <span className="text-sm font-bold text-gray-800">
-                                  Rango #{index + 1}
-                                </span>
-                                <p className="text-xs text-gray-500">
-                                  Configuración de gracia por período
+                  <div className="space-y-3">
+                    {graciasPeriodo.map((gracia, index) => (
+                      <div
+                        key={gracia.id}
+                        className="bg-gray-50 rounded-lg border p-4"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-medium text-gray-700">
+                            Rango #{index + 1}
+                          </span>
+                          {graciasPeriodo.length > 1 && (
+                            <Button
+                              type="button"
+                              onClick={() => eliminarGraciaPeriodo(gracia.id)}
+                              size="sm"
+                              variant="ghost"
+                              className="text-red-500 hover:text-white hover:bg-red-500 h-8 w-8 p-0"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <Label className="text-xs text-gray-600 mb-1 block">
+                              Desde
+                            </Label>
+                            <Input
+                              type="number"
+                              value={gracia.desde || ""}
+                              onChange={(e) =>
+                                actualizarGraciaPeriodo(
+                                  gracia.id,
+                                  "desde",
+                                  e.target.value ? parseInt(e.target.value) : 1
+                                )
+                              }
+                              className="h-9 text-center"
+                              min={obtenerLimitesInput(gracia, "desde").min}
+                              max={obtenerLimitesInput(gracia, "desde").max}
+                              placeholder="1"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-gray-600 mb-1 block">
+                              Hasta
+                            </Label>
+                            <Input
+                              type="number"
+                              value={gracia.hasta || ""}
+                              onChange={(e) =>
+                                actualizarGraciaPeriodo(
+                                  gracia.id,
+                                  "hasta",
+                                  e.target.value ? parseInt(e.target.value) : 1
+                                )
+                              }
+                              className="h-9 text-center"
+                              min={obtenerLimitesInput(gracia, "hasta").min}
+                              max={obtenerLimitesInput(gracia, "hasta").max}
+                              placeholder="1"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-gray-600 mb-1 block">
+                              Tipo
+                            </Label>
+                            <Select
+                              value={gracia.tipoGracia}
+                              onValueChange={(value) =>
+                                actualizarGraciaPeriodo(
+                                  gracia.id,
+                                  "tipoGracia",
+                                  value as "Sin Gracia" | "Parcial" | "Total"
+                                )
+                              }
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Sin Gracia">
+                                  Sin Gracia
+                                </SelectItem>
+                                <SelectItem value="Parcial">Parcial</SelectItem>
+                                <SelectItem value="Total">Total</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        {/* Validación simplificada */}
+                        {(() => {
+                          const errorValidacion =
+                            validarGraciaContraTotalPeriodos(gracia);
+                          const errorSolapamiento = validarSolapamientosGracia(
+                            gracia,
+                            graciasPeriodo
+                          );
+                          const error = errorValidacion || errorSolapamiento;
+
+                          if (error) {
+                            return (
+                              <div className="mt-2 p-2 bg-red-50 rounded border border-red-200">
+                                <p className="text-xs text-red-600 flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3" />
+                                  {error}
                                 </p>
                               </div>
-                            </div>
-                            {graciasPeriodo.length > 1 && (
-                              <Button
-                                type="button"
-                                onClick={() => eliminarGraciaPeriodo(gracia.id)}
-                                size="sm"
-                                variant="ghost"
-                                className="text-red-500 hover:text-white hover:bg-red-500 transition-all duration-200 rounded-full"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
+                            );
+                          }
 
-                          <div className="grid grid-cols-3 gap-4">
-                            <div className="space-y-2">
-                              <Label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
-                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                Período Desde
-                              </Label>
-                              <div className="relative">
-                                <Input
-                                  type="number"
-                                  value={gracia.desde || ""}
-                                  onChange={(e) =>
-                                    actualizarGraciaPeriodo(
-                                      gracia.id,
-                                      "desde",
-                                      e.target.value
-                                        ? parseInt(e.target.value)
-                                        : 1
-                                    )
-                                  }
-                                  className="h-11 text-center font-bold bg-blue-50 border-2 border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                                  min="1"
-                                  placeholder="1"
-                                />
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
-                                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                Período Hasta
-                              </Label>
-                              <div className="relative">
-                                <Input
-                                  type="number"
-                                  value={gracia.hasta || ""}
-                                  onChange={(e) =>
-                                    actualizarGraciaPeriodo(
-                                      gracia.id,
-                                      "hasta",
-                                      e.target.value
-                                        ? parseInt(e.target.value)
-                                        : 1
-                                    )
-                                  }
-                                  className="h-11 text-center font-bold bg-purple-50 border-2 border-purple-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
-                                  min="1"
-                                  placeholder="12"
-                                />
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
-                                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                                Tipo de Gracia
-                              </Label>
-                              <div className="relative">
-                                <Select
-                                  value={gracia.tipoGracia}
-                                  onValueChange={(value) =>
-                                    actualizarGraciaPeriodo(
-                                      gracia.id,
-                                      "tipoGracia",
-                                      value as
-                                        | "Sin Gracia"
-                                        | "Parcial"
-                                        | "Total"
-                                    )
-                                  }
-                                >
-                                  <SelectTrigger className="h-11 bg-amber-50 border-2 border-amber-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-100">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="Sin Gracia">
-                                      🚫 Sin Gracia
-                                    </SelectItem>
-                                    <SelectItem value="Parcial">
-                                      ⏯️ Gracia Parcial
-                                    </SelectItem>
-                                    <SelectItem value="Total">
-                                      ⏸️ Gracia Total
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                          </div>
+                          const plazo = parseInt(watchedValues.plazo || "0");
+                          const frecuencia = parseInt(
+                            watchedValues.frecuenciaPago || "1"
+                          );
+                          const totalPeriodos =
+                            plazo > 0 && frecuencia > 0
+                              ? plazo * frecuencia
+                              : 0;
 
-                          {/* Visualización del rango */}
-                          <div className="mt-3 p-3 bg-gradient-to-r from-gray-50 to-amber-50 rounded-lg border border-gray-200">
-                            <p className="text-sm text-gray-700 text-center">
-                              <span className="font-semibold">
-                                Períodos {gracia.desde} al {gracia.hasta}:
-                              </span>
-                              <span className="text-amber-600 font-bold ml-2">
-                                {gracia.tipoGracia === "Sin Gracia" &&
-                                  "🚫 Sin Gracia"}
-                                {gracia.tipoGracia === "Parcial" &&
-                                  "⏯️ Gracia Parcial"}
-                                {gracia.tipoGracia === "Total" &&
-                                  "⏸️ Gracia Total"}
-                              </span>
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                          if (
+                            totalPeriodos > 0 &&
+                            gracia.desde > 0 &&
+                            gracia.hasta > 0
+                          ) {
+                            return (
+                              <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+                                <p className="text-xs text-green-600 flex items-center gap-1">
+                                  <CheckCircle className="w-3 h-3" />
+                                  Períodos {gracia.desde}-{gracia.hasta}:{" "}
+                                  {gracia.tipoGracia}
+                                </p>
+                              </div>
+                            );
+                          }
+
+                          return null;
+                        })()}
+                      </div>
+                    ))}
                   </div>
-                )}
-              </div>
-            </Card>{" "}
+                </div>
+              )}
+            </Card>
             {/* COSTOS DEL EMISOR */}
             <Card className="p-6 border-purple-300 bg-white shadow-sm">
               <div className="flex items-center gap-2 mb-6">
@@ -1480,9 +1703,7 @@ export default function BonoFormEnhanced() {
               <Button
                 type="submit"
                 disabled={
-                  isSubmitting ||
-                  completionPercentage < 100 ||
-                  Object.keys(form.formState.errors).length > 0
+                  isSubmitting || Object.keys(form.formState.errors).length > 0
                 }
                 className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-lg shadow-lg transform transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
@@ -1674,7 +1895,7 @@ export default function BonoFormEnhanced() {
             )}
 
             {/* PREVIEW DE FLUJOS DE CAJA */}
-            {calculatedMetrics && completionPercentage > 80 && (
+            {calculatedMetrics && (
               <Card className="p-6 border-indigo-300 bg-gradient-to-br from-indigo-50 to-purple-50 shadow-sm">
                 <div className="flex items-center gap-2 mb-6">
                   <BarChart3 className="w-5 h-5 text-indigo-600" />
