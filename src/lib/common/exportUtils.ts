@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import type { BonoData } from "./bonoUtils";
+import type { BonoData } from "../bonos/bonoUtils";
 
 export const exportBonosToPDF = (bonos: (BonoData & { id: string })[]) => {
   const doc = new jsPDF();

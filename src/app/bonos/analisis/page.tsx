@@ -5,7 +5,7 @@ import ComparadorBonos from "@/components/bonos/BonoComparator";
 import TablaFlujosCaja from "@/components/bonos/FlowTable";
 import ProtectedRoute from "@/components/auth/RouteGuard";
 import { Card } from "@/components/ui/card";
-import type { BonoData } from "@/lib/bonoUtils";
+import type { BonoData } from "@/lib/bonos/bonoUtils";
 import Link from "next/link";
 import {
   Calculator,

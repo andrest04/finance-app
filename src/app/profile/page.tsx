@@ -1,6 +1,6 @@
 "use client";
 
-import { useCurrentUser } from "@/lib/useCurrentUser";
+import { useCurrentUser } from "@/lib/firebase/useCurrentUser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

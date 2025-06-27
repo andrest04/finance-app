@@ -17,8 +17,8 @@ import {
   BonoData,
   calcularTCEABono,
   calcularTREABono,
-} from "@/lib/bonoUtils";
-import { useCurrentUser } from "@/lib/useCurrentUser";
+} from "@/lib/bonos/bonoUtils";
+import { useCurrentUser } from "@/lib/firebase/useCurrentUser";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -48,12 +48,12 @@ import { Switch } from "@/components/ui/switch";
 import {
   calcularFlujoFrances,
   calcularFlujoFrancesDinamico,
-} from "@/lib/francesMetod";
+} from "@/lib/bonos/metodoFrances";
 import {
   calcularDuracion,
   calcularConvexidad,
   type FlujoBono,
-} from "@/lib/indicadoresBono";
+} from "@/lib/bonos/indicadoresBono";
 
 const bonoFormSchema = z
   .object({

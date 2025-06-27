@@ -1,7 +1,7 @@
 // Cálculo de TCEA (Tasa de Coste Efectivo Anual) desde el punto de vista del emisor
 // La TCEA considera todos los costos que tiene el emisor al emitir el bono
 
-import { calcularFlujoFrances, type BonoParams } from "./francesMetod";
+import { calcularFlujoFrances, type BonoParams } from "./metodoFrances";
 
 export interface TCEAParams {
   valorNominal: number;

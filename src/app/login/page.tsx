@@ -9,8 +9,8 @@ import {
   getUserData,
   handleOrphanedUser,
   isUserProfileComplete,
-} from "@/lib/userUtils";
-import { getErrorMessage } from "@/lib/errorMessages";
+} from "@/lib/firebase/userUtils";
+import { getErrorMessage } from "@/lib/common/errorMessages";
 import Link from "next/link";
 
 export default function LoginPage() {

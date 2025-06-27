@@ -14,7 +14,7 @@ import {
   orderBy,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { useCurrentUser } from "@/lib/useCurrentUser";
+import { useCurrentUser } from "@/lib/firebase/useCurrentUser";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -51,9 +51,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { exportBonosToPDF } from "@/lib/exportUtils";
-import { calcularTCEABono, calcularTREABono } from "@/lib/bonoUtils";
-import type { BonoData } from "@/lib/bonoUtils";
+import { exportBonosToPDF } from "@/lib/common/exportUtils";
+import { calcularTCEABono, calcularTREABono } from "@/lib/bonos/bonoUtils";
+import type { BonoData } from "@/lib/bonos/bonoUtils";
 
 type Bono = BonoData & { id: string };
 

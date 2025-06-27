@@ -3,10 +3,10 @@
 import { useEffect, useState, useMemo } from "react";
 import { getDocs, collection, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { useCurrentUser } from "@/lib/useCurrentUser";
+import { useCurrentUser } from "@/lib/firebase/useCurrentUser";
 import { Card } from "@/components/ui/card";
 import { ArrowUpDown, Loader2 } from "lucide-react";
-import type { BonoData } from "@/lib/bonoUtils";
+import type { BonoData } from "@/lib/bonos/bonoUtils";
 import {
   Select,
   SelectTrigger,

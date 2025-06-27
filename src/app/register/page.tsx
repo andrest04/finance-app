@@ -4,8 +4,8 @@ import { useState } from "react";
 import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { auth, googleProvider } from "@/lib/firebase";
-import { saveUserData } from "@/lib/userUtils";
-import { getErrorMessage } from "@/lib/errorMessages";
+import { saveUserData } from "@/lib/firebase/userUtils";
+import { getErrorMessage } from "@/lib/common/errorMessages";
 import Link from "next/link";
 
 export default function RegisterPage() {
@@ -128,7 +128,7 @@ export default function RegisterPage() {
       });
 
       // Verificar si el rol está vacío en la base de datos
-      const userData = await import("@/lib/userUtils").then((m) =>
+      const userData = await import("@/lib/firebase/userUtils").then((m) =>
         m.getUserData(result.user.uid)
       );
       if (!userData?.role) {

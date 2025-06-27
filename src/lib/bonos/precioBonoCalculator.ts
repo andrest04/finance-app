@@ -4,7 +4,7 @@
  * (cupones y amortización) descontados a una tasa de rendimiento exigida.
  */
 
-import { calcularFlujoFrances, type BonoParams } from "./francesMetod";
+import { calcularFlujoFrances, type BonoParams } from "./metodoFrances";
 import type { BonoData } from "./bonoUtils";
 
 export interface PrecioBonoParams {
