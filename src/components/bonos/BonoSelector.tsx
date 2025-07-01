@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { getDocs, collection, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCurrentUser } from "@/lib/useCurrentUser";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import type { BonoData } from "@/lib/bonoUtils";
 import {
   Select,
@@ -42,6 +42,7 @@ export default function SelectorBonos({
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   // Filtros avanzados
   const [filtroMoneda, setFiltroMoneda] = useState("");
@@ -88,6 +89,10 @@ export default function SelectorBonos({
       const isCurrentlySelected = prev.includes(id);
       return isCurrentlySelected ? [] : [id];
     });
+  };
+
+  const handleExpand = (id: string) => {
+    setExpanded((prev) => (prev === id ? null : id));
   };
 
   const filteredBonos = useMemo(() => {
@@ -153,51 +158,54 @@ export default function SelectorBonos({
           <ul className="flex flex-col gap-4">
             {filteredBonos.map((bono) => (
               <li key={bono.id}>
-                <button
-                  type="button"
-                  onClick={() => handleSelect(bono.id)}
-                  className={`w-full text-left rounded-xl border transition-all shadow-sm px-6 py-4 bg-white hover:bg-blue-50 focus:outline-none flex items-center gap-4 relative
-                    ${selected.includes(bono.id)
-                      ? "border-blue-600 ring-2 ring-blue-200 bg-blue-50"
-                      : "border-gray-200"}
-                  `}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                <div className="relative w-full">
+                  <div
+                    className={`w-full rounded-xl border transition-all shadow-sm px-6 py-4 bg-white hover:bg-blue-50 flex items-center gap-4 relative cursor-pointer select-none ${selected.includes(bono.id) ? "border-blue-600 ring-2 ring-blue-200 bg-blue-50" : "border-gray-200"}`}
+                    onClick={() => handleSelect(bono.id)}
+                  >
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
                       <span className="font-bold text-lg text-gray-900 break-words whitespace-normal">
                         {bono.nombre}
                       </span>
-                      <span className="ml-2 text-xs text-gray-500 font-medium">
-                        {bono.moneda}
-                      </span>
                     </div>
-                    <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-700 mb-1">
-                      <span>
-                        <span className="font-medium">Valor Nominal:</span> {formatCurrency(bono.valorNominal, bono.moneda)}
-                      </span>
-                      <span>
-                        <span className="font-medium">Tasa:</span> <span className="text-green-600 font-semibold">{bono.tasaAnual}%</span>
-                      </span>
-                      <span>
-                        <span className="font-medium">Plazo:</span> {bono.plazo} años
-                      </span>
-                      <span>
-                        <span className="font-medium">Emisión:</span> {formatDate(bono.fechaEmision)}
-                      </span>
+                    <button
+                      type="button"
+                      aria-label={expanded === bono.id ? "Colapsar detalles" : "Expandir detalles"}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleExpand(bono.id);
+                      }}
+                      className="ml-2 p-1 rounded hover:bg-blue-100 focus:outline-none"
+                    >
+                      {expanded === bono.id ? (
+                        <ChevronUp className="w-5 h-5 text-blue-600" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-blue-600" />
+                      )}
+                    </button>
+                  </div>
+                  {expanded === bono.id && (
+                    <div className="mt-2 ml-2 px-4 py-2 bg-blue-50 rounded-lg border border-blue-100 text-sm text-gray-700 animate-fade-in">
+                      <div className="flex flex-wrap gap-x-6 gap-y-1 mb-1">
+                        <span>
+                          <span className="font-medium">Moneda:</span> {bono.moneda}
+                        </span>
+                        <span>
+                          <span className="font-medium">Valor Nominal:</span> {formatCurrency(bono.valorNominal, bono.moneda)}
+                        </span>
+                        <span>
+                          <span className="font-medium">Tasa:</span> <span className="text-green-600 font-semibold">{bono.tasaAnual}%</span>
+                        </span>
+                        <span>
+                          <span className="font-medium">Plazo:</span> {bono.plazo} años
+                        </span>
+                        <span>
+                          <span className="font-medium">Emisión:</span> {formatDate(bono.fechaEmision)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-block w-4 h-4 rounded-full border-2 ${selected.includes(bono.id)
-                        ? "border-blue-600 bg-blue-600"
-                        : "border-gray-300 bg-white"}
-                      `}
-                    />
-                    <span className="text-sm font-medium text-blue-700">
-                      {selected.includes(bono.id) ? "Seleccionado" : "Seleccionar"}
-                    </span>
-                  </div>
-                </button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
