@@ -2,6 +2,8 @@
 // La TCEA considera todos los costos que tiene el emisor al emitir el bono
 
 import { calcularFlujoFrances, type BonoParams } from "./francesMetod";
+import { validarParametrosBono } from "./validationUtils";
+import { calcularTasaNewtonRaphson } from "./newtonRaphsonUtils";
 
 export interface TCEAParams {
   valorNominal: number;
@@ -94,7 +96,7 @@ export function calcularTCEA(params: TCEAParams): TCEAResult {
   ];
 
   // 4. Calcular la TCEA usando el método de Newton-Raphson
-  const tceaAnual = calcularTCEANewtonRaphson(flujoEmisor, frecuenciaPago);
+  const tceaAnual = calcularTasaNewtonRaphson(flujoEmisor, frecuenciaPago);
 
   return {
     tcea: tceaAnual,
@@ -103,94 +105,10 @@ export function calcularTCEA(params: TCEAParams): TCEAResult {
 }
 
 /**
- * Método de Newton-Raphson para encontrar la TCEA
- * Busca la tasa que hace que el VPN de los flujos del emisor sea cero
- */
-function calcularTCEANewtonRaphson(
-  flujoEmisor: { periodo: number; flujoNeto: number }[],
-  frecuenciaPago: number,
-  precision: number = 1e-6,
-  maxIteraciones: number = 100
-): number {
-  const tasaAnual = 0.08; // Tasa inicial estimada (8% anual, más cercana al ejemplo)
-  let tasaPeriodo = tasaAnual / frecuenciaPago;
-
-  for (let i = 0; i < maxIteraciones; i++) {
-    const { vpn, derivada } = calcularVPNyDerivada(flujoEmisor, tasaPeriodo);
-
-    if (Math.abs(vpn) < precision) {
-      // Convertir tasa periódica a anual
-      return ((1 + tasaPeriodo) ** frecuenciaPago - 1) * 100;
-    }
-
-    if (Math.abs(derivada) < precision) {
-      break; // Evitar división por cero
-    }
-
-    // Actualizar la tasa usando Newton-Raphson
-    const nuevaTasaPeriodo = tasaPeriodo - vpn / derivada;
-    tasaPeriodo = nuevaTasaPeriodo;
-  }
-
-  // Convertir a tasa anual
-  return ((1 + tasaPeriodo) ** frecuenciaPago - 1) * 100;
-}
-
-/**
- * Calcula el VPN y su derivada para el método de Newton-Raphson
- */
-function calcularVPNyDerivada(
-  flujoEmisor: { periodo: number; flujoNeto: number }[],
-  tasaPeriodo: number
-): { vpn: number; derivada: number } {
-  let vpn = 0;
-  let derivada = 0;
-
-  for (const flujo of flujoEmisor) {
-    const factor = Math.pow(1 + tasaPeriodo, flujo.periodo);
-    const flujoDescontado = flujo.flujoNeto / factor;
-
-    vpn += flujoDescontado;
-
-    // Derivada del VPN respecto a la tasa
-    derivada -=
-      (flujo.periodo * flujo.flujoNeto) / (factor * (1 + tasaPeriodo));
-  }
-
-  return { vpn, derivada };
-}
-
-/**
- * Función auxiliar para validar los parámetros de entrada
+ * Función auxiliar para validar los parámetros de entrada de TCEA
  */
 export function validarParametrosTCEA(params: TCEAParams): string[] {
-  const errores: string[] = [];
-
-  if (params.valorNominal <= 0) {
-    errores.push("El valor nominal debe ser mayor a cero");
-  }
-
-  if (params.tasaAnual < 0) {
-    errores.push("La tasa anual no puede ser negativa");
-  }
-
-  if (params.frecuenciaPago <= 0) {
-    errores.push("La frecuencia de pago debe ser mayor a cero");
-  }
-
-  if (params.plazo <= 0) {
-    errores.push("El plazo debe ser mayor a cero");
-  }
-
-  if (params.comisionEmisor < 0) {
-    errores.push("La comisión del emisor no puede ser negativa");
-  }
-
-  if (params.comisionBonista < 0) {
-    errores.push("La comisión del bonista no puede ser negativa");
-  }
-
-  return errores;
+  return validarParametrosBono(params);
 }
 
 /**
@@ -243,7 +161,7 @@ export function calcularTREA(params: TREAParams): TREAResult {
   ];
 
   // 4. Calcular la TREA usando el método de Newton-Raphson
-  const treaAnual = calcularTREANewtonRaphson(
+  const treaAnual = calcularTasaNewtonRaphson(
     flujoInversionista,
     frecuenciaPago
   );
@@ -255,71 +173,8 @@ export function calcularTREA(params: TREAParams): TREAResult {
 }
 
 /**
- * Método de Newton-Raphson para encontrar la TREA
- * Busca la tasa que hace que el VPN de los flujos del inversionista sea cero
- */
-function calcularTREANewtonRaphson(
-  flujoInversionista: { periodo: number; flujoNeto: number }[],
-  frecuenciaPago: number,
-  precision: number = 1e-6,
-  maxIteraciones: number = 100
-): number {
-  const tasaAnual = 0.08; // Tasa inicial estimada (8% anual, más cercana al ejemplo)
-  let tasaPeriodo = tasaAnual / frecuenciaPago;
-
-  for (let i = 0; i < maxIteraciones; i++) {
-    const { vpn, derivada } = calcularVPNyDerivada(
-      flujoInversionista,
-      tasaPeriodo
-    );
-
-    if (Math.abs(vpn) < precision) {
-      // Convertir tasa periódica a anual
-      return ((1 + tasaPeriodo) ** frecuenciaPago - 1) * 100;
-    }
-
-    if (Math.abs(derivada) < precision) {
-      break; // Evitar división por cero
-    }
-
-    // Actualizar la tasa usando Newton-Raphson
-    const nuevaTasaPeriodo = tasaPeriodo - vpn / derivada;
-    tasaPeriodo = nuevaTasaPeriodo;
-  }
-
-  // Convertir a tasa anual
-  return ((1 + tasaPeriodo) ** frecuenciaPago - 1) * 100;
-}
-
-/**
  * Función auxiliar para validar los parámetros de entrada de TREA
  */
 export function validarParametrosTREA(params: TREAParams): string[] {
-  const errores: string[] = [];
-
-  if (params.valorNominal <= 0) {
-    errores.push("El valor nominal debe ser mayor a cero");
-  }
-
-  if (params.tasaAnual < 0) {
-    errores.push("La tasa anual no puede ser negativa");
-  }
-
-  if (params.frecuenciaPago <= 0) {
-    errores.push("La frecuencia de pago debe ser mayor a cero");
-  }
-
-  if (params.plazo <= 0) {
-    errores.push("El plazo debe ser mayor a cero");
-  }
-
-  if (params.comisionEmisor < 0) {
-    errores.push("La comisión del emisor no puede ser negativa");
-  }
-
-  if (params.comisionBonista < 0) {
-    errores.push("La comisión del bonista no puede ser negativa");
-  }
-
-  return errores;
+  return validarParametrosBono(params);
 }
