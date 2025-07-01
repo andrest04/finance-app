@@ -104,6 +104,8 @@ export function calcularPrecioBono(params: PrecioBonoParams): PrecioBonoResult {
   };
 }
 
+import { mapGracia } from "./graciaUtils";
+
 /**
  * Wrapper para calcular precio desde un objeto BonoData
  */
@@ -111,13 +113,6 @@ export function calcularPrecioBonoDesdeBono(
   bono: BonoData,
   tasaDescuento?: number
 ): PrecioBonoResult {
-  const mapGracia = (tipo: string): "Ninguno" | "Total" | "Parcial" => {
-    if (tipo === "Sin Gracia" || tipo === "Ninguno") return "Ninguno";
-    if (tipo === "Total") return "Total";
-    if (tipo === "Parcial") return "Parcial";
-    return "Ninguno";
-  };
-
   return calcularPrecioBono({
     valorNominal: bono.valorNominal,
     tasaAnual: bono.tasaAnual,

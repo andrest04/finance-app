@@ -19,6 +19,7 @@ import {
   calcularPrecioBonoDesdeBono,
   type PrecioBonoResult,
 } from "./precioBonoCalculator";
+import { mapGracia } from "./graciaUtils";
 
 export interface BonoData {
   nombre: string;
@@ -369,13 +370,6 @@ export const getBonoFullStats = async (
  */
 export function calcularTCEABono(bono: BonoData): number {
   try {
-    const mapGracia = (tipo: string): "Ninguno" | "Total" | "Parcial" => {
-      if (tipo === "Sin Gracia" || tipo === "Ninguno") return "Ninguno";
-      if (tipo === "Total") return "Total";
-      if (tipo === "Parcial") return "Parcial";
-      return "Ninguno";
-    };
-
     const tceaParams: TCEAParams = {
       valorNominal: bono.valorNominal,
       tasaAnual: bono.tasaAnual,
@@ -400,13 +394,6 @@ export function calcularTCEABono(bono: BonoData): number {
  */
 export function calcularTREABono(bono: BonoData): number {
   try {
-    const mapGracia = (tipo: string): "Ninguno" | "Total" | "Parcial" => {
-      if (tipo === "Sin Gracia" || tipo === "Ninguno") return "Ninguno";
-      if (tipo === "Total") return "Total";
-      if (tipo === "Parcial") return "Parcial";
-      return "Ninguno";
-    };
-
     const treaParams: TREAParams = {
       valorNominal: bono.valorNominal,
       tasaAnual: bono.tasaAnual,

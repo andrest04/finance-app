@@ -250,7 +250,7 @@ const BonoCard = React.memo(
               <p className="text-gray-500">Emisión</p>
               <p className="font-semibold">{formatDate(bono.fechaEmision)}</p>
             </div>
-          </div>{" "}
+          </div>
         </div>
         {/* Footer */}
         <div className="px-6 py-3 bg-gray-50 border-t">
@@ -358,7 +358,7 @@ const BonoTableRow = React.memo(
                   ) : (
                     <Trash2 className="h-4 w-4" />
                   )}
-                </Button>{" "}
+                </Button>
               </>
             )}
           </div>
@@ -810,7 +810,7 @@ export default function BonoListEnhanced() {
                 <Plus className="w-4 h-4" /> Nuevo Bono
               </Button>
             )}
-          </div>{" "}
+          </div>
         </div>
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1060,7 +1060,7 @@ export default function BonoListEnhanced() {
             </div>
           </div>
         </Card>
-      )}{" "}
+      )}
       {/* Loading State - Solo mostrar loading completo en carga inicial */}
       {state.loading && !state.initialized ? (
         <div className="flex justify-center items-center py-16">
@@ -1104,7 +1104,6 @@ export default function BonoListEnhanced() {
           {/* Sort Controls */}
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-600">
-              {" "}
               Mostrando {filteredAndSortedBonos.length} de {state.bonos.length}
               bonos
             </p>
@@ -1152,7 +1151,7 @@ export default function BonoListEnhanced() {
                     <SortDesc className="w-3 h-3" />
                   ))}
               </Button>
-            </div>{" "}
+            </div>
           </div>
           {/* Bonds Grid/List */}
           {state.loading && state.initialized ? (
@@ -1226,7 +1225,7 @@ export default function BonoListEnhanced() {
                       </th>
                       <th className="text-right p-4 font-semibold text-gray-700">
                         TREA
-                      </th>{" "}
+                      </th>
                       <th className="text-center p-4 font-semibold text-gray-700">
                         Plazo
                       </th>

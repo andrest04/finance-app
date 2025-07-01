@@ -196,53 +196,37 @@ export default function TablaFlujosCaja({ bono }: TablaFlujosCajaProps) {
       </div>
 
       {isExpanded && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Tabla de Flujos */}
-          <div className="bg-white rounded-lg border border-blue-200 overflow-hidden">
-            <div className="overflow-x-auto max-h-96">
-              {" "}
+          <div className="bg-white rounded-xl border border-blue-200 overflow-hidden">
+            <div className="overflow-x-auto max-h-96 scrollbar-thin scrollbar-thumb-blue-200 scrollbar-track-blue-50">
               <table className="w-full text-sm">
-                <thead className="bg-blue-100 sticky top-0">
+                <thead className="bg-blue-100 sticky top-0 shadow z-10">
                   <tr>
-                    <th className="px-3 py-3 text-left text-blue-900 font-semibold">
-                      N°
-                    </th>
+                    <th className="px-3 py-3 text-left text-blue-900 font-semibold">N°</th>
+                    <th className="px-3 py-3 text-center text-blue-900 font-semibold">TEA</th>
                     <th className="px-3 py-3 text-center text-blue-900 font-semibold">
-                      TEA
-                    </th>
-                    <th className="px-3 py-3 text-center text-blue-900 font-semibold">
-                      {bono.frecuenciaPago === 2
-                        ? "TES"
-                        : `Tasa ${getNombreFrecuencia(bono.frecuenciaPago)}`}
+                      {bono.frecuenciaPago === 2 ? "TES" : `Tasa ${getNombreFrecuencia(bono.frecuenciaPago)}`}
                     </th>
                     <th className="px-3 py-3 text-center text-blue-900 font-semibold">
                       {bono.esGraciaDinamica ? "Tipo Gracia" : "Plazo Gracia"}
                     </th>
-                    <th className="px-3 py-3 text-right text-blue-900 font-semibold">
-                      Saldo Inicial
-                    </th>
-                    <th className="px-3 py-3 text-right text-blue-900 font-semibold">
-                      Interés
-                    </th>
-                    <th className="px-3 py-3 text-right text-blue-900 font-semibold">
-                      Cuota
-                    </th>
-                    <th className="px-3 py-3 text-right text-blue-900 font-semibold">
-                      Amortización
-                    </th>
-                    <th className="px-3 py-3 text-right text-blue-900 font-semibold">
-                      Saldo Final
-                    </th>
+                    <th className="px-3 py-3 text-right text-blue-900 font-semibold">Saldo Inicial</th>
+                    <th className="px-3 py-3 text-right text-blue-900 font-semibold">Interés</th>
+                    <th className="px-3 py-3 text-right text-blue-900 font-semibold">Cuota</th>
+                    <th className="px-3 py-3 text-right text-blue-900 font-semibold">Amortización</th>
+                    <th className="px-3 py-3 text-right text-blue-900 font-semibold">Saldo Final</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-blue-100">
+                <tbody className="divide-y divide-blue-50">
                   {flujosExtendidos.map((flujo, index) => (
                     <tr
                       key={index}
-                      className={`hover:bg-blue-50 ${
+                      className={`transition-colors hover:bg-blue-50 ${
+                        index % 2 === 0 ? "bg-white" : "bg-blue-50"
+                      } ${
                         bono.esGraciaDinamica
-                          ? getTipoGraciaPorPeriodo(flujo.periodo) !==
-                            "Sin Gracia"
+                          ? getTipoGraciaPorPeriodo(flujo.periodo) !== "Sin Gracia"
                             ? "bg-yellow-50"
                             : ""
                           : flujo.plazoGracia > 0
@@ -250,15 +234,9 @@ export default function TablaFlujosCaja({ bono }: TablaFlujosCajaProps) {
                           : ""
                       }`}
                     >
-                      <td className="px-3 py-2 font-medium text-blue-900">
-                        {flujo.periodo}
-                      </td>
-                      <td className="px-3 py-2 text-center text-blue-800">
-                        {flujo.tea.toFixed(2)}%
-                      </td>
-                      <td className="px-3 py-2 text-center text-blue-800">
-                        {flujo.tes.toFixed(4)}%
-                      </td>
+                      <td className="px-3 py-2 font-medium text-blue-900">{flujo.periodo}</td>
+                      <td className="px-3 py-2 text-center text-blue-800">{flujo.tea.toFixed(2)}%</td>
+                      <td className="px-3 py-2 text-center text-blue-800">{flujo.tes.toFixed(4)}%</td>
                       <td className="px-3 py-2 text-center text-blue-800">
                         {bono.esGraciaDinamica
                           ? getTipoGraciaPorPeriodo(flujo.periodo)
@@ -273,47 +251,31 @@ export default function TablaFlujosCaja({ bono }: TablaFlujosCajaProps) {
                         ).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-3 py-2 text-right text-blue-800">
-                        {flujo.interes.toLocaleString("es-PE", {
-                          minimumFractionDigits: 2,
-                        })}
+                        {flujo.interes.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-3 py-2 text-right text-blue-800 font-medium">
-                        {flujo.cuota.toLocaleString("es-PE", {
-                          minimumFractionDigits: 2,
-                        })}
+                        {flujo.cuota.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-3 py-2 text-right text-blue-800">
-                        {flujo.amortizacion.toLocaleString("es-PE", {
-                          minimumFractionDigits: 2,
-                        })}
+                        {flujo.amortizacion.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-3 py-2 text-right text-blue-800 font-medium">
-                        {flujo.saldo.toLocaleString("es-PE", {
-                          minimumFractionDigits: 2,
-                        })}
+                        {flujo.saldo.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot className="bg-blue-100 font-semibold">
                   <tr>
-                    <td className="px-3 py-3 text-blue-900" colSpan={5}>
-                      TOTALES
+                    <td className="px-3 py-3 text-blue-900" colSpan={5}>TOTALES</td>
+                    <td className="px-3 py-3 text-right text-blue-900">
+                      {totalIntereses.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-3 py-3 text-right text-blue-900">
-                      {totalIntereses.toLocaleString("es-PE", {
-                        minimumFractionDigits: 2,
-                      })}
+                      {totalCuotas.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-3 py-3 text-right text-blue-900">
-                      {totalCuotas.toLocaleString("es-PE", {
-                        minimumFractionDigits: 2,
-                      })}
-                    </td>
-                    <td className="px-3 py-3 text-right text-blue-900">
-                      {totalAmortizacion.toLocaleString("es-PE", {
-                        minimumFractionDigits: 2,
-                      })}
+                      {totalAmortizacion.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-3 py-3 text-right text-blue-900">-</td>
                   </tr>
@@ -323,51 +285,42 @@ export default function TablaFlujosCaja({ bono }: TablaFlujosCajaProps) {
           </div>
 
           {/* Resumen */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-green-100 p-4 rounded-lg border border-green-300">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <div className="flex items-center gap-2 mb-2">
                 <Calculator className="w-4 h-4 text-green-600" />
                 <h4 className="font-medium text-green-800">Método Francés</h4>
               </div>
               <p className="text-sm text-green-700">
-                Cuotas constantes de{" "}
-                {flujosExtendidos[0]?.cuota.toLocaleString("es-PE", {
-                  minimumFractionDigits: 2,
-                })}
+                Cuotas constantes de {flujosExtendidos[0]?.cuota.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="bg-purple-100 p-4 rounded-lg border border-purple-300">
+            <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-purple-600" />
                 <h4 className="font-medium text-purple-800">Total Intereses</h4>
               </div>
               <p className="text-sm text-purple-700">
-                {totalIntereses.toLocaleString("es-PE", {
-                  minimumFractionDigits: 2,
-                })}
+                {totalIntereses.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="bg-orange-100 p-4 rounded-lg border border-orange-300">
+            <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-orange-600" />
                 <h4 className="font-medium text-orange-800">Total Pagado</h4>
               </div>
               <p className="text-sm text-orange-700">
-                {totalCuotas.toLocaleString("es-PE", {
-                  minimumFractionDigits: 2,
-                })}
+                {totalCuotas.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
               </p>
             </div>
           </div>
 
           {/* Nota sobre períodos de gracia */}
           {(bono.nGracia || 0) > 0 && (
-            <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
               <p className="text-sm text-yellow-800">
                 <strong>Nota:</strong> Las filas marcadas en amarillo
-                corresponden a períodos de gracia (
-                {bono.tipoGracia.toLowerCase()}).{" "}
-                {bono.tipoGracia === "Total"
+                corresponden a períodos de gracia ({bono.tipoGracia.toLowerCase()}). {bono.tipoGracia === "Total"
                   ? "No se realizan pagos durante estos períodos."
                   : "Solo se pagan intereses durante estos períodos."}
               </p>
