@@ -44,13 +44,13 @@ function formatCurrency(value: number, currency: string) {
   })}`;
 }
 
-interface ComparadorBonosProps {
-  onBonosSeleccionados: (bonos: (BonoData & { id: string })[]) => void;
+interface SelectorBonosProps {
+  onBonoSeleccionado: (bonos: (BonoData & { id: string })[]) => void;
 }
 
-export default function ComparadorBonos({
-  onBonosSeleccionados,
-}: ComparadorBonosProps) {
+export default function SelectorBonos({
+  onBonoSeleccionado,
+}: SelectorBonosProps) {
   const { firebaseUser, profile, loading: userLoading } = useCurrentUser();
   const [bonos, setBonos] = useState<(BonoData & { id: string })[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
@@ -91,11 +91,11 @@ export default function ComparadorBonos({
     if (!userLoading && profile) fetchBonos();
   }, [firebaseUser, profile, userLoading]);
 
-  // Notify parent component when selected bonds change
+  // Notify parent component when selected bond changes
   useEffect(() => {
     const selectedBonos = bonos.filter((b) => selected.includes(b.id));
-    onBonosSeleccionados(selectedBonos);
-  }, [selected, bonos, onBonosSeleccionados]);
+    onBonoSeleccionado(selectedBonos);
+  }, [selected, bonos, onBonoSeleccionado]);
   const handleSelect = (id: string) => {
     setSelected((prev) => {
       // Solo permitir un bono seleccionado a la vez
@@ -155,7 +155,7 @@ export default function ComparadorBonos({
         <div className="flex flex-col gap-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold text-gray-800">
-              Comparador de Bonos
+              Seleccionar Bono para Análisis
             </h2>
             <Button
               variant="outline"

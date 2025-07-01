@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import ComparadorBonos from "@/components/bonos/BonoComparator";
+import SelectorBonos from "@/components/bonos/BonoSelector";
 import TablaFlujosCaja from "@/components/bonos/FlowTable";
 import ProtectedRoute from "@/components/auth/RouteGuard";
 import type { BonoData } from "@/lib/bonoUtils";
@@ -76,8 +76,7 @@ export default function AnalisisBonosPage() {
               <div className="flex items-center gap-3">
                 <BarChart3 className="w-7 h-7" />
                 <div>
-                  <h2 className="text-2xl font-bold">Análisis de Bono</h2>
-                  <p className="text-blue-100 text-sm mt-1">
+                  <p className="text-blue-100 text-sm">
                     Selecciona un bono para ver su tabla de amortización con
                     el método francés
                   </p>
@@ -86,7 +85,7 @@ export default function AnalisisBonosPage() {
             </div>
             {/* Selector de Bonos */}
             <div className="p-6 border-b border-gray-200">
-              <ComparadorBonos onBonosSeleccionados={setSelectedBonos} />
+              <SelectorBonos onBonoSeleccionado={setSelectedBonos} />
             </div>
             {/* Tablas de Flujos de Caja */}
             {selectedBonos.length > 0 && (
