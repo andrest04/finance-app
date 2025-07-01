@@ -52,11 +52,11 @@ export default function AnalisisBonosPage() {
         </header>
 
         {/* Contenido Principal */}
-        <div className="max-w-7xl mx-auto px-6 py-8">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-sm">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* Selector de Bonos - Sidebar */}
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 sticky top-24">
+              <div className="bg-white rounded-xl shadow border border-gray-100 lg:sticky lg:top-[6.5rem] lg:max-h-[calc(100vh-7.5rem)] lg:overflow-auto">
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-t-xl">
                   <div className="flex items-center gap-3">
                     <BarChart3 className="w-5 h-5" />
@@ -76,28 +76,22 @@ export default function AnalisisBonosPage() {
 
             {/* Área Principal - Tabla de Flujos */}
             <div className="lg:col-span-3">
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+              <div className="bg-white rounded-2xl shadow border border-gray-100">
                 {/* Header de la Tabla */}
-                <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-6 rounded-t-xl">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Calculator className="w-7 h-7" />
-                      <div>
-                        <h2 className="text-2xl font-bold">Tabla de Flujos de Caja</h2>
-                        <p className="text-green-100 text-sm mt-1">
-                          Método Francés - Cuotas Constantes
-                        </p>
-                      </div>
-                    </div>
-                    {selectedBonos.length > 0 && (
-                      <div className="flex items-center gap-2 px-3 py-1 bg-green-500/20 rounded-full">
-                        <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
-                        <span className="text-sm font-medium text-green-100">
-                          {selectedBonos.length} bono seleccionado
-                        </span>
-                      </div>
-                    )}
+                <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-2xl">
+                  <Calculator className="w-6 h-6 text-green-600" />
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 leading-tight">Tabla de Flujos de Caja</h2>
+                    <p className="text-green-700 text-xs mt-0.5">Método Francés - Cuotas Constantes</p>
                   </div>
+                  {selectedBonos.length > 0 && (
+                    <div className="ml-auto flex items-center gap-2 px-3 py-1 bg-green-500/10 rounded-full">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      <span className="text-xs font-medium text-green-700">
+                        {selectedBonos.length} bono seleccionado
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Contenido de la Tabla */}
@@ -112,15 +106,15 @@ export default function AnalisisBonosPage() {
                       </div>
                     ))
                   ) : (
-                    <div>
-                    <div className="text-center py-16">
+                    /* Estado Vacío Mejorado */
+                    <div className="text-center py-20">
                       <div className="flex flex-col items-center gap-6">
                         <div className="relative">
-                          <div className="p-8 bg-gradient-to-br from-green-100 to-emerald-200 rounded-full shadow-lg">
-                            <Calculator className="w-16 h-16 text-green-600" />
+                          <div className="p-10 bg-gradient-to-br from-green-100 to-emerald-200 rounded-full shadow-lg">
+                            <Calculator className="w-20 h-20 text-green-600" />
                           </div>
-                          <div className="absolute -top-3 -right-3 p-3 bg-yellow-400 rounded-full shadow-md">
-                            <Lightbulb className="w-5 h-5 text-yellow-800" />
+                          <div className="absolute -top-4 -right-4 p-4 bg-yellow-400 rounded-full shadow-md">
+                            <Lightbulb className="w-7 h-7 text-yellow-800" />
                           </div>
                         </div>
                         <div className="max-w-md">
@@ -140,13 +134,12 @@ export default function AnalisisBonosPage() {
                         </div>
                       </div>
                     </div>
-                    </div>
                   )}
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </main>
       </div>
     </ProtectedRoute>
   );
