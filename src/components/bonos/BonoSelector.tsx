@@ -4,8 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { getDocs, collection, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCurrentUser } from "@/lib/useCurrentUser";
-import { Card } from "@/components/ui/card";
-import { ArrowUpDown, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import type { BonoData } from "@/lib/bonoUtils";
 import {
   Select,
@@ -17,19 +16,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-
-const campos = [
-  { key: "nombre", label: "Nombre" },
-  { key: "valorNominal", label: "Valor Nominal" },
-  { key: "moneda", label: "Moneda" },
-  { key: "tasaAnual", label: "Tasa Anual (%)" },
-  { key: "plazo", label: "Plazo (años)" },
-  { key: "tipoTasa", label: "Tipo de Tasa" },
-  { key: "fechaEmision", label: "Fecha de Emisión" },
-  { key: "comisionEmisor", label: "Comisión Emisor (%)" },
-  { key: "comisionBonista", label: "Comisión Bonista (%)" },
-  { key: "tasaMercado", label: "Tasa Rendimiento Exigida (%)" },
-];
 
 function formatDate(date: string | { seconds: number }) {
   if (typeof date === "string") {
@@ -64,8 +50,8 @@ export default function SelectorBonos({
   const [filtroEmisor, setFiltroEmisor] = useState("");
 
   // Ordenamiento
-  const [orden, setOrden] = useState("nombre");
-  const [ordenDesc, setOrdenDesc] = useState(false);
+  const [orden] = useState("nombre");
+  const [ordenDesc] = useState(false);
 
   useEffect(() => {
     const fetchBonos = async () => {
@@ -151,160 +137,133 @@ export default function SelectorBonos({
 
   return (
     <div className="space-y-6">
-      <Card className="p-6">
-        <div className="flex flex-col gap-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-gray-800">
-              Seleccionar Bono para Análisis
-            </h2>
-            <Button
-              variant="outline"
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className="flex items-center gap-2"
-            >
-              {showAdvancedFilters ? "Ocultar Filtros" : "Mostrar Filtros"}
-            </Button>
+      <div className="flex flex-col gap-4">
+        {loading ? (
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="animate-spin h-6 w-6 text-blue-600 mr-3" />
+            <span className="text-blue-700 font-medium text-lg">
+              Cargando bonos...
+            </span>
           </div>
-
-          {showAdvancedFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
-              <div className="space-y-2">
-                <Label>Moneda</Label>
-                <Select value={filtroMoneda} onValueChange={setFiltroMoneda}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas las monedas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    <SelectItem value="PEN">Soles (PEN)</SelectItem>
-                    <SelectItem value="USD">Dólares (USD)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Plazo (años)</Label>
-                <Select value={filtroPlazo} onValueChange={setFiltroPlazo}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos los plazos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="1">1 año</SelectItem>
-                    <SelectItem value="2">2 años</SelectItem>
-                    <SelectItem value="3">3 años</SelectItem>
-                    <SelectItem value="5">5 años</SelectItem>
-                    <SelectItem value="10">10 años</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Tasa Anual (%)</Label>
-                <Input
-                  type="number"
-                  value={filtroTasa}
-                  onChange={(e) => setFiltroTasa(e.target.value)}
-                  placeholder="Filtrar por tasa"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Emisor</Label>
-                <Input
-                  value={filtroEmisor}
-                  onChange={(e) => setFiltroEmisor(e.target.value)}
-                  placeholder="Buscar emisor"
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Label>Ordenar por:</Label>
-              <Select value={orden} onValueChange={setOrden}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Seleccionar campo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {campos.map((campo) => (
-                    <SelectItem key={campo.key} value={campo.key}>
-                      {campo.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setOrdenDesc(!ordenDesc)}
-              >
-                <ArrowUpDown className="h-4 w-4" />
-              </Button>
-            </div>
+        ) : filteredBonos.length === 0 ? (
+          <div className="text-center text-gray-500 py-8">
+            No hay bonos disponibles.
           </div>
-        </div>
-      </Card>
-
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredBonos.map((bono) => (
-            <Card
-              key={bono.id}
-              className={`p-6 transition-all duration-200 hover:shadow-lg ${
-                selected.includes(bono.id) ? "ring-2 ring-blue-500" : ""
-              }`}
-            >
-              <div className="space-y-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      {bono.nombre}
-                    </h3>
-                    <p className="text-sm text-gray-500">{bono.moneda}</p>
+        ) : (
+          <ul className="flex flex-col gap-4">
+            {filteredBonos.map((bono) => (
+              <li key={bono.id}>
+                <button
+                  type="button"
+                  onClick={() => handleSelect(bono.id)}
+                  className={`w-full text-left rounded-xl border transition-all shadow-sm px-6 py-4 bg-white hover:bg-blue-50 focus:outline-none flex items-center gap-4 relative
+                    ${selected.includes(bono.id)
+                      ? "border-blue-600 ring-2 ring-blue-200 bg-blue-50"
+                      : "border-gray-200"}
+                  `}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-lg text-gray-900 break-words whitespace-normal">
+                        {bono.nombre}
+                      </span>
+                      <span className="ml-2 text-xs text-gray-500 font-medium">
+                        {bono.moneda}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-700 mb-1">
+                      <span>
+                        <span className="font-medium">Valor Nominal:</span> {formatCurrency(bono.valorNominal, bono.moneda)}
+                      </span>
+                      <span>
+                        <span className="font-medium">Tasa:</span> <span className="text-green-600 font-semibold">{bono.tasaAnual}%</span>
+                      </span>
+                      <span>
+                        <span className="font-medium">Plazo:</span> {bono.plazo} años
+                      </span>
+                      <span>
+                        <span className="font-medium">Emisión:</span> {formatDate(bono.fechaEmision)}
+                      </span>
+                    </div>
                   </div>
-                  <Button
-                    variant={selected.includes(bono.id) ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleSelect(bono.id)}
-                  >
-                    {selected.includes(bono.id)
-                      ? "Seleccionado"
-                      : "Seleccionar"}
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Valor Nominal</p>
-                    <p className="font-medium">
-                      {formatCurrency(bono.valorNominal, bono.moneda)}
-                    </p>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-block w-4 h-4 rounded-full border-2 ${selected.includes(bono.id)
+                        ? "border-blue-600 bg-blue-600"
+                        : "border-gray-300 bg-white"}
+                      `}
+                    />
+                    <span className="text-sm font-medium text-blue-700">
+                      {selected.includes(bono.id) ? "Seleccionado" : "Seleccionar"}
+                    </span>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Tasa Anual</p>
-                    <p className="font-medium text-green-600">
-                      {bono.tasaAnual}%
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Plazo</p>
-                    <p className="font-medium">{bono.plazo} años</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Fecha Emisión</p>
-                    <p className="font-medium">
-                      {formatDate(bono.fechaEmision)}
-                    </p>
-                  </div>{" "}
-                </div>
-              </div>
-            </Card>
-          ))}{" "}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {/* Filtros avanzados opcionales */}
+      {showAdvancedFilters && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg mt-4">
+          <div className="space-y-2">
+            <Label>Moneda</Label>
+            <Select value={filtroMoneda} onValueChange={setFiltroMoneda}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todas las monedas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="PEN">Soles (PEN)</SelectItem>
+                <SelectItem value="USD">Dólares (USD)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Plazo (años)</Label>
+            <Select value={filtroPlazo} onValueChange={setFiltroPlazo}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos los plazos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="1">1 año</SelectItem>
+                <SelectItem value="2">2 años</SelectItem>
+                <SelectItem value="3">3 años</SelectItem>
+                <SelectItem value="5">5 años</SelectItem>
+                <SelectItem value="10">10 años</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Tasa Anual (%)</Label>
+            <Input
+              type="number"
+              placeholder="Ej: 5"
+              value={filtroTasa}
+              onChange={(e) => setFiltroTasa(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Nombre</Label>
+            <Input
+              type="text"
+              placeholder="Buscar bono..."
+              value={filtroEmisor}
+              onChange={(e) => setFiltroEmisor(e.target.value)}
+            />
+          </div>
         </div>
       )}
+      <div className="flex justify-end mt-2">
+        <Button
+          variant="outline"
+          onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          className="flex items-center gap-2"
+        >
+          {showAdvancedFilters ? "Ocultar Filtros" : "Mostrar Filtros"}
+        </Button>
+      </div>
     </div>
   );
 }
