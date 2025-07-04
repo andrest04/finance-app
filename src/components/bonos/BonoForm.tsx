@@ -82,8 +82,8 @@ const bonoFormSchema = z
       .min(1, "La tasa anual es requerida")
       .refine((val) => {
         const num = parseFloat(val);
-        return !isNaN(num) && num > 0 && num <= 100;
-      }, "La tasa debe estar entre 0% y 100%"),
+        return !isNaN(num) && num >= 2 && num <= 10;
+      }, "La tasa debe estar entre 2% y 10%"),
     frecuenciaPago: z
       .string()
       .min(1, "La frecuencia de pago es requerida")
@@ -962,7 +962,7 @@ export default function BonoFormEnhanced() {
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Tasa de interés anual. Rango válido: 0% - 100%</p>
+                        <p>Tasa de interés anual. Rango válido: 2% - 10%</p>
                       </TooltipContent>
                     </Tooltip>
                   </Label>
@@ -971,8 +971,8 @@ export default function BonoFormEnhanced() {
                       {...form.register("tasaAnual")}
                       type="number"
                       step="0.01"
-                      min="0"
-                      max="100"
+                      min="2"
+                      max="10"
                       placeholder="8.50"
                       className="border-gray-300 focus:border-blue-500 pr-8"
                     />
@@ -989,17 +989,19 @@ export default function BonoFormEnhanced() {
 
                   {/* Validación de tasa anual */}
                   {watchedValues.tasaAnual &&
-                    parseFloat(watchedValues.tasaAnual) > 0 && (
+                    parseFloat(watchedValues.tasaAnual) >= 2 &&
+                    parseFloat(watchedValues.tasaAnual) <= 10 && (
                       <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
                         <CheckCircle className="w-3 h-3" />
                         Tasa válida para método francés
                       </div>
                     )}
                   {watchedValues.tasaAnual &&
-                    parseFloat(watchedValues.tasaAnual) > 25 && (
+                    (parseFloat(watchedValues.tasaAnual) > 10 ||
+                      parseFloat(watchedValues.tasaAnual) < 2) && (
                       <div className="mt-2 text-xs text-orange-600 flex items-center gap-1">
                         <AlertCircle className="w-3 h-3" />
-                        Tasa muy alta - Verifique el valor
+                        La tasa debe estar entre 2% y 10%
                       </div>
                     )}
                   {watchedValues.tasaAnual &&

@@ -67,8 +67,8 @@ const bonoFormSchema = z
       .min(1, "La tasa anual es requerida")
       .refine((val) => {
         const num = parseFloat(val);
-        return !isNaN(num) && num > 0 && num <= 100;
-      }, "La tasa debe estar entre 0% y 100%"),
+        return !isNaN(num) && num >= 2 && num <= 10;
+      }, "La tasa debe estar entre 2% y 10%"),
     frecuenciaPago: z
       .string()
       .min(1, "La frecuencia de pago es requerida")
@@ -535,8 +535,8 @@ export default function EditarBonoPage() {
                 id="tasaAnual"
                 type="number"
                 step="0.01"
-                min="0"
-                max="100"
+                min="2"
+                max="10"
                 {...register("tasaAnual")}
                 placeholder="8.50"
               />
