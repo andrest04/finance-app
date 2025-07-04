@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { getDocs, collection, query, where } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { useCurrentUser } from "@/lib/useCurrentUser";
+import { db } from "@/lib/firebase/firebase";
+import { useCurrentUser } from "@/lib/firebase/useCurrentUser";
 import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
-import type { BonoData } from "@/lib/bonoUtils";
+import type { BonoData } from "@/lib/bono/bonoUtils";
 import {
   Select,
   SelectTrigger,

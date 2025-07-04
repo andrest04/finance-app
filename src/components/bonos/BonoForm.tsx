@@ -17,8 +17,8 @@ import {
   BonoData,
   calcularTCEABono,
   calcularTREABono,
-} from "@/lib/bonoUtils";
-import { useCurrentUser } from "@/lib/useCurrentUser";
+} from "@/lib/bono/bonoUtils";
+import { useCurrentUser } from "@/lib/firebase/useCurrentUser";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,7 +37,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase/firebase";
 import { useRouter } from "next/navigation";
 import {
   Tooltip,
@@ -48,12 +48,12 @@ import { Switch } from "@/components/ui/switch";
 import {
   calcularFlujoFrances,
   calcularFlujoFrancesDinamico,
-} from "@/lib/francesMetod";
+} from "@/lib/calculations/francesMetod";
 import {
   calcularDuracion,
   calcularConvexidad,
   type FlujoBono,
-} from "@/lib/indicadoresBono";
+} from "@/lib/calculations/indicadoresBono";
 
 const bonoFormSchema = z
   .object({

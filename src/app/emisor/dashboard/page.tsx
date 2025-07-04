@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ProtectedRoute from "@/components/auth/RouteGuard";
-import { useCurrentUser } from "@/lib/useCurrentUser";
+import { useCurrentUser } from "@/lib/firebase/useCurrentUser";
 import { Card } from "@/components/ui/card";
 import ProximosVencimientos from "@/components/ui/ProximosVencimientos";
 import { useRouter } from "next/navigation";
@@ -18,7 +18,7 @@ import {
   getBonoStats,
   getRecentActivity,
   type BonoData,
-} from "@/lib/bonoUtils";
+} from "@/lib/bono/bonoUtils";
 import { formatDate } from "@/lib/utils";
 
 export default function EmisorDashboard() {

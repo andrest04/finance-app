@@ -1,4 +1,4 @@
-import { db } from "./firebase";
+import { db } from "../firebase/firebase";
 import {
   collection,
   addDoc,
@@ -14,11 +14,11 @@ import {
   calcularTREA,
   type TCEAParams,
   type TREAParams,
-} from "./tceaCalculator";
+} from "../calculations/tceaCalculator";
 import {
   calcularPrecioBonoDesdeBono,
   type PrecioBonoResult,
-} from "./precioBonoCalculator";
+} from "../calculations/precioBonoCalculator";
 import { mapGracia } from "./graciaUtils";
 
 export interface BonoData {

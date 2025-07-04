@@ -4,7 +4,7 @@ import { useState } from "react";
 import SelectorBonos from "@/components/bonos/BonoSelector";
 import TablaFlujosCaja from "@/components/bonos/FlowTable";
 import ProtectedRoute from "@/components/auth/RouteGuard";
-import type { BonoData } from "@/lib/bonoUtils";
+import type { BonoData } from "@/lib/bono/bonoUtils";
 import Link from "next/link";
 import {
   Calculator,

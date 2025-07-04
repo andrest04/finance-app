@@ -9,7 +9,7 @@ import {
   completelyDeleteUser,
   cleanOrphanedUser,
   generateCleanupReport,
-} from "@/lib/adminUtils";
+} from "@/lib/firebase/adminUtils";
 
 export default function AdminCleanupPage() {
   const [email, setEmail] = useState("");

@@ -4,12 +4,12 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, Eye, EyeOff, Calculator, TrendingUp } from "lucide-react";
-import type { BonoData } from "@/lib/bonoUtils";
+import type { BonoData } from "@/lib/bono/bonoUtils";
 import {
   calcularFlujoFrances,
   calcularFlujoFrancesDinamico,
   FlujoPeriodo,
-} from "@/lib/francesMetod";
+} from "@/lib/calculations/francesMetod";
 
 interface TablaFlujosCajaProps {
   bono: BonoData & { id: string };

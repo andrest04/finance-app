@@ -2,7 +2,7 @@
 // La TCEA considera todos los costos que tiene el emisor al emitir el bono
 
 import { calcularFlujoFrances, type BonoParams } from "./francesMetod";
-import { validarParametrosBono } from "./validationUtils";
+import { validarParametrosBono } from "../bono/validationUtils";
 import { calcularTasaNewtonRaphson } from "./newtonRaphsonUtils";
 
 export interface TCEAParams {

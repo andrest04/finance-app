@@ -12,8 +12,8 @@ import {
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { useCurrentUser } from "@/lib/useCurrentUser";
+import { db } from "@/lib/firebase/firebase";
+import { useCurrentUser } from "@/lib/firebase/useCurrentUser";
 import { Loader2 } from "lucide-react";
 import ProtectedRoute from "@/components/auth/RouteGuard";
 

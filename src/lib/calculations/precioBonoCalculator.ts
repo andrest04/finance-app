@@ -5,7 +5,7 @@
  */
 
 import { calcularFlujoFrances, type BonoParams } from "./francesMetod";
-import type { BonoData } from "./bonoUtils";
+import type { BonoData } from "../bono/bonoUtils";
 
 export interface PrecioBonoParams {
   valorNominal: number;
@@ -104,7 +104,7 @@ export function calcularPrecioBono(params: PrecioBonoParams): PrecioBonoResult {
   };
 }
 
-import { mapGracia } from "./graciaUtils";
+import { mapGracia } from "../bono/graciaUtils";
 
 /**
  * Wrapper para calcular precio desde un objeto BonoData

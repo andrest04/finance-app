@@ -3,14 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
-import { auth, googleProvider } from "@/lib/firebase";
+import { auth, googleProvider } from "@/lib/firebase/firebase";
 import {
   saveUserData,
   getUserData,
   handleOrphanedUser,
   isUserProfileComplete,
-} from "@/lib/userUtils";
-import { getErrorMessage } from "@/lib/errorMessages";
+} from "@/lib/firebase/userUtils";
+import { getErrorMessage } from "@/lib/firebase/errorMessages";
 import Link from "next/link";
 
 export default function LoginPage() {

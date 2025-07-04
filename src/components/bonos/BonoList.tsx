@@ -13,8 +13,8 @@ import {
   DocumentSnapshot,
   orderBy,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { useCurrentUser } from "@/lib/useCurrentUser";
+import { db } from "@/lib/firebase/firebase";
+import { useCurrentUser } from "@/lib/firebase/useCurrentUser";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -51,9 +51,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { exportBonosToPDF } from "@/lib/exportUtils";
-import { calcularTCEABono, calcularTREABono } from "@/lib/bonoUtils";
-import type { BonoData } from "@/lib/bonoUtils";
+import { exportBonosToPDF } from "@/lib/bono/exportUtils";
+import { calcularTCEABono, calcularTREABono } from "@/lib/bono/bonoUtils";
+import type { BonoData } from "@/lib/bono/bonoUtils";
 
 type Bono = BonoData & { id: string };
 

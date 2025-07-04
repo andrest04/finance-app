@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { useCurrentUser } from "@/lib/useCurrentUser";
+import { db } from "@/lib/firebase/firebase";
+import { useCurrentUser } from "@/lib/firebase/useCurrentUser";
 import { Button } from "@/components/ui/button";
-import type { BonoData } from "@/lib/bonoUtils";
+import type { BonoData } from "@/lib/bono/bonoUtils";
 import ProtectedRoute from "@/components/auth/RouteGuard";
 import { Info } from "lucide-react";
 import {
@@ -19,13 +19,13 @@ import {
   calcularDuracionModificada,
   calcularConvexidad,
   FlujoBono,
-} from "@/lib/indicadoresBono";
-import { calcularFlujoFrances } from "@/lib/francesMetod";
-import { calcularTCEABono, calcularTREABono } from "@/lib/bonoUtils";
+} from "@/lib/calculations/indicadoresBono";
+import { calcularFlujoFrances } from "@/lib/calculations/francesMetod";
+import { calcularTCEABono, calcularTREABono } from "@/lib/bono/bonoUtils";
 import {
   calcularPrecioBonoDesdeBono,
   type PrecioBonoResult,
-} from "@/lib/precioBonoCalculator";
+} from "@/lib/calculations/precioBonoCalculator";
 
 export default function DetalleBonoPage() {
   const { firebaseUser, profile } = useCurrentUser();
