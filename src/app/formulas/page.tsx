@@ -6,7 +6,6 @@ import {
   Calculator,
   BookOpen,
   Target,
-  TrendingUp,
   DollarSign,
   Activity,
   BarChart3,
@@ -87,11 +86,11 @@ export default function FormulasPage() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">
-                  📐 Compendio de Fórmulas Matemáticas
+                  📐 Fórmulas de Análisis de Bonos
                 </h1>
                 <p className="text-gray-600 mt-2">
-                  Referencia completa de todas las fórmulas utilizadas en el
-                  análisis de bonos
+                  Fórmulas principales para análisis de bonos con enfoque en
+                  bonos semestrales TEA
                 </p>
               </div>
             </div>
@@ -110,6 +109,12 @@ export default function FormulasPage() {
                 </h3>
                 <nav className="space-y-2">
                   <a
+                    href="#bonos-semestrales"
+                    className="block text-sm text-slate-600 hover:text-blue-600 transition-colors"
+                  >
+                    � Bonos Semestrales TEA
+                  </a>
+                  <a
                     href="#metodo-frances"
                     className="block text-sm text-slate-600 hover:text-blue-600 transition-colors"
                   >
@@ -119,7 +124,7 @@ export default function FormulasPage() {
                     href="#tasas-efectivas"
                     className="block text-sm text-slate-600 hover:text-blue-600 transition-colors"
                   >
-                    💰 Tasas Efectivas
+                    💰 Tasas Efectivas (TCEA/TREA)
                   </a>
                   <a
                     href="#indicadores-riesgo"
@@ -128,22 +133,10 @@ export default function FormulasPage() {
                     ⚖️ Indicadores de Riesgo
                   </a>
                   <a
-                    href="#conversion-tasas"
-                    className="block text-sm text-slate-600 hover:text-blue-600 transition-colors"
-                  >
-                    🔄 Conversión de Tasas
-                  </a>
-                  <a
                     href="#valoracion"
                     className="block text-sm text-slate-600 hover:text-blue-600 transition-colors"
                   >
                     💎 Valoración
-                  </a>
-                  <a
-                    href="#algoritmos"
-                    className="block text-sm text-slate-600 hover:text-blue-600 transition-colors"
-                  >
-                    🔬 Algoritmos Numéricos
                   </a>
                   <a
                     href="#leyenda"
@@ -157,6 +150,90 @@ export default function FormulasPage() {
 
             {/* Contenido de Fórmulas */}
             <div className="lg:col-span-3 space-y-8">
+              {/* Bonos Semestrales TEA */}
+              <section id="bonos-semestrales">
+                <Card className="p-6 bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200">
+                  <div className="flex items-center gap-3 mb-6">
+                    <Target className="w-6 h-6 text-emerald-600" />
+                    <h2 className="text-2xl font-bold text-emerald-900">
+                      🎯 Bonos Semestrales con TEA
+                    </h2>
+                  </div>
+                  <p className="text-emerald-800 mb-4 text-sm">
+                    Fórmulas específicas para bonos con pagos semestrales y tasa
+                    efectiva anual (TEA). Estas son las fórmulas principales
+                    utilizadas en nuestra aplicación.
+                  </p>
+                  <div className="space-y-4">
+                    <FormulaCard
+                      id="tea-a-tes"
+                      title="Conversión TEA a TES"
+                      formula="TES = (1 + TEA)^(1/2) - 1"
+                      description="Convierte la tasa efectiva anual a tasa efectiva semestral para bonos semestrales"
+                      variables={[
+                        "TEA: Tasa Efectiva Anual (%)",
+                        "TES: Tasa Efectiva Semestral (%)",
+                      ]}
+                    />
+                    <FormulaCard
+                      id="cupon-semestral"
+                      title="Cupón Semestral"
+                      formula="Cupón = VN × TES"
+                      description="Calcula el cupón semestral usando la tasa efectiva semestral"
+                      variables={[
+                        "VN: Valor Nominal del bono",
+                        "TES: Tasa Efectiva Semestral",
+                      ]}
+                    />
+                    <FormulaCard
+                      id="precio-bono-semestral"
+                      title="Precio del Bono (Semestral)"
+                      formula="P = Σ[Cupón/(1+TES_mercado)^t] + VN/(1+TES_mercado)^n"
+                      description="Valor presente de los flujos semestrales usando tasa de mercado semestral"
+                      variables={[
+                        "P: Precio del bono",
+                        "Cupón: Cupón semestral",
+                        "TES_mercado: Tasa de mercado semestral",
+                        "n: Número de semestres",
+                      ]}
+                    />
+                    <FormulaCard
+                      id="tcea-semestral"
+                      title="TCEA para Bonos Semestrales"
+                      formula="TCEA = (1 + TIR_semestral)² - 1"
+                      description="Convierte la TIR semestral a tasa anual efectiva para el emisor"
+                      variables={[
+                        "TIR_semestral: Tasa interna de retorno semestral",
+                        "TCEA: Tasa de Costo Efectivo Anual",
+                      ]}
+                    />
+                    <FormulaCard
+                      id="trea-semestral"
+                      title="TREA para Bonos Semestrales"
+                      formula="TREA = (1 + TIR_semestral)² - 1"
+                      description="Convierte la TIR semestral a tasa anual efectiva para el inversionista"
+                      variables={[
+                        "TIR_semestral: Tasa interna de retorno semestral",
+                        "TREA: Tasa de Rendimiento Efectivo Anual",
+                      ]}
+                    />
+                    <FormulaCard
+                      id="duracion-macaulay-semestral"
+                      title="Duración Macaulay (Semestral)"
+                      formula="D_Macaulay = Σ[t × FC_t / (1+TES)^t] / P / 2"
+                      description="Duración promedio ponderada en años para bonos semestrales"
+                      variables={[
+                        "t: Período semestral",
+                        "FC_t: Flujo de caja en período t",
+                        "TES: Tasa efectiva semestral",
+                        "P: Precio del bono",
+                        "/2: Conversión de semestres a años",
+                      ]}
+                    />
+                  </div>
+                </Card>
+              </section>
+
               {/* Método Francés */}
               <section id="metodo-frances">
                 <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
@@ -221,6 +298,10 @@ export default function FormulasPage() {
                       💰 Tasas Efectivas (TCEA/TREA)
                     </h2>
                   </div>
+                  <p className="text-green-800 mb-4 text-sm">
+                    Las métricas principales que se muestran en nuestra
+                    aplicación para evaluar bonos.
+                  </p>
                   <div className="space-y-4">
                     <FormulaCard
                       id="tcea-emisor"
@@ -276,69 +357,43 @@ export default function FormulasPage() {
                       ⚖️ Indicadores de Riesgo
                     </h2>
                   </div>
+                  <p className="text-purple-800 mb-4 text-sm">
+                    Métricas de riesgo calculadas automáticamente para bonos
+                    semestrales.
+                  </p>
                   <div className="space-y-4">
                     <FormulaCard
-                      id="duracion"
-                      title="Duración (D)"
-                      formula="D = Σ[t × FC_t / (1+r)^t] / Σ[FC_t / (1+r)^t]"
-                      description="Promedio ponderado del tiempo hasta recibir los flujos de caja"
+                      id="duracion-macaulay"
+                      title="Duración Macaulay"
+                      formula="D = Σ[t × FC_t / (1+r)^t] / P"
+                      description="Promedio ponderado del tiempo hasta recibir los flujos de caja (en años para bonos semestrales)"
                       variables={[
                         "t: Período del flujo",
                         "FC_t: Flujo de caja en período t",
                         "r: Tasa de descuento",
+                        "P: Precio del bono",
                       ]}
                     />
                     <FormulaCard
                       id="duracion-modificada"
-                      title="Duración Modificada (DM)"
-                      formula="DM = D / (1 + r)"
-                      description="Sensibilidad aproximada del precio del bono ante cambios en la tasa de interés"
-                      variables={["D: Duración", "r: Tasa de descuento"]}
+                      title="Duración Modificada"
+                      formula="DM = D / (1 + r/2)"
+                      description="Sensibilidad del precio del bono ante cambios en la tasa de interés (ajustada para bonos semestrales)"
+                      variables={[
+                        "D: Duración Macaulay",
+                        "r: Tasa de descuento anual",
+                      ]}
                     />
                     <FormulaCard
                       id="convexidad"
-                      title="Convexidad (C)"
+                      title="Convexidad"
                       formula="C = Σ[FC_t × t × (t+1) / (1+r)^t] / [P × (1+r)²]"
-                      description="Medida de la curvatura de la relación precio-rendimiento"
+                      description="Medida de la curvatura de la relación precio-rendimiento para bonos semestrales"
                       variables={[
                         "FC_t: Flujo de caja en período t",
                         "t: Período",
-                        "r: Tasa de descuento",
+                        "r: Tasa de descuento semestral",
                         "P: Precio del bono",
-                      ]}
-                    />
-                  </div>
-                </Card>
-              </section>
-
-              {/* Conversión de Tasas */}
-              <section id="conversion-tasas">
-                <Card className="p-6 bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200">
-                  <div className="flex items-center gap-3 mb-6">
-                    <TrendingUp className="w-6 h-6 text-orange-600" />
-                    <h2 className="text-2xl font-bold text-orange-900">
-                      🔄 Conversión de Tasas
-                    </h2>
-                  </div>
-                  <div className="space-y-4">
-                    <FormulaCard
-                      id="tea-tes"
-                      title="TEA a TES (Tasa Efectiva)"
-                      formula="TES = (1 + TEA)^(1/m) - 1"
-                      description="Convierte la tasa efectiva anual a tasa efectiva por sub-período"
-                      variables={[
-                        "TEA: Tasa Efectiva Anual",
-                        "m: Frecuencia de capitalización anual",
-                      ]}
-                    />
-                    <FormulaCard
-                      id="anualizacion"
-                      title="Anualización de Tasa"
-                      formula="Tasa_Anual = ((1 + tasa_período)^m - 1) × 100"
-                      description="Convierte una tasa por período a tasa anual equivalente"
-                      variables={[
-                        "tasa_período: Tasa por período",
-                        "m: Número de períodos por año",
                       ]}
                     />
                   </div>
@@ -354,16 +409,22 @@ export default function FormulasPage() {
                       💎 Valoración
                     </h2>
                   </div>
+                  <p className="text-cyan-800 mb-4 text-sm">
+                    Fórmulas de valoración utilizadas para calcular precios y
+                    métricas de rendimiento.
+                  </p>
                   <div className="space-y-4">
                     <FormulaCard
-                      id="vpn"
-                      title="Valor Presente Neto (VPN)"
-                      formula="VPN = Σ[FC_t / (1+r)^t] - Inversión_Inicial"
-                      description="Valor presente de todos los flujos futuros menos la inversión inicial"
+                      id="precio-maximo-cok"
+                      title="Precio Máximo (COK)"
+                      formula="P_max = Σ[Cupón/(1+COK/2)^t] + VN/(1+COK/2)^n"
+                      description="Precio máximo del bono usando el costo de oportunidad del capital como tasa de descuento"
                       variables={[
-                        "FC_t: Flujo de caja en período t",
-                        "r: Tasa de descuento",
-                        "t: Período",
+                        "P_max: Precio máximo del bono",
+                        "Cupón: Cupón semestral",
+                        "COK: Costo de Oportunidad del Capital (anual)",
+                        "VN: Valor Nominal",
+                        "n: Número de semestres",
                       ]}
                     />
                     <FormulaCard
@@ -375,53 +436,6 @@ export default function FormulasPage() {
                         "FC: Flujo de caja futuro",
                         "r: Tasa de descuento",
                         "t: Período en el futuro",
-                      ]}
-                    />
-                    <FormulaCard
-                      id="sensibilidad-precio"
-                      title="Sensibilidad del Precio"
-                      formula="ΔP ≈ -DM × Δr × P"
-                      description="Cambio aproximado en el precio ante un cambio en la tasa de interés"
-                      variables={[
-                        "DM: Duración Modificada",
-                        "Δr: Cambio en la tasa",
-                        "P: Precio actual",
-                      ]}
-                    />
-                  </div>
-                </Card>
-              </section>
-
-              {/* Algoritmos Numéricos */}
-              <section id="algoritmos">
-                <Card className="p-6 bg-gradient-to-br from-red-50 to-rose-50 border-red-200">
-                  <div className="flex items-center gap-3 mb-6">
-                    <Calculator className="w-6 h-6 text-red-600" />
-                    <h2 className="text-2xl font-bold text-red-900">
-                      🔬 Algoritmos Numéricos
-                    </h2>
-                  </div>
-                  <div className="space-y-4">
-                    <FormulaCard
-                      id="newton-raphson"
-                      title="Método Newton-Raphson para TIR"
-                      formula="r_n+1 = r_n - f(r_n) / f'(r_n)"
-                      description="Método iterativo para encontrar la Tasa Interna de Retorno"
-                      variables={[
-                        "r_n: Tasa en iteración n",
-                        "f(r): Función VPN",
-                        "f'(r): Derivada de la función VPN",
-                      ]}
-                    />
-                    <FormulaCard
-                      id="derivada-vpn"
-                      title="Derivada del VPN"
-                      formula="f'(r) = -Σ[t × FC_t / (1+r)^(t+1)]"
-                      description="Derivada de la función VPN respecto a la tasa de descuento"
-                      variables={[
-                        "t: Período",
-                        "FC_t: Flujo de caja en período t",
-                        "r: Tasa de descuento",
                       ]}
                     />
                   </div>
@@ -497,10 +511,7 @@ export default function FormulasPage() {
                           • <strong>TEA:</strong> Tasa Efectiva Anual
                         </div>
                         <div>
-                          • <strong>TES:</strong> Tasa Efectiva Sub-período
-                        </div>
-                        <div>
-                          • <strong>TNM:</strong> Tasa Nominal Mensual
+                          • <strong>TES:</strong> Tasa Efectiva Semestral
                         </div>
                         <div>
                           • <strong>TCEA:</strong> Tasa Costo Efectivo Anual
@@ -510,7 +521,11 @@ export default function FormulasPage() {
                           Anual
                         </div>
                         <div>
-                          • <strong>D:</strong> Duración
+                          • <strong>COK:</strong> Costo de Oportunidad del
+                          Capital
+                        </div>
+                        <div>
+                          • <strong>D:</strong> Duración Macaulay
                         </div>
                         <div>
                           • <strong>DM:</strong> Duración Modificada

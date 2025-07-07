@@ -524,28 +524,6 @@ export default function DetalleBonoPage() {
               </div>
             </div>
           </div>
-
-          {/* Información adicional */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
-            <div className="flex items-start gap-2">
-              <Info className="w-4 h-4 text-blue-600 mt-0.5" />
-              <div>
-                <p className="text-sm text-blue-800 font-medium">
-                  Análisis Financiero
-                </p>
-                <p className="text-xs text-blue-700 mt-1">
-                  {bono &&
-                  bono.frecuenciaPago === 2 &&
-                  bono.tipoTasa === "Efectiva"
-                    ? "Análisis semestral especializado aplicado para mayor precisión en bonos semestrales TEA."
-                    : "Análisis estándar aplicado. Para mayor precisión, considere bonos semestrales con tasa efectiva anual."}
-                </p>
-                <p className="text-xs text-blue-700 mt-1">
-                  Comisión CAVALI: 0.06% del valor nominal
-                </p>
-              </div>
-            </div>
-          </div>
         </section>
       </main>
     </ProtectedRoute>
