@@ -40,6 +40,7 @@ export interface BonoData {
   fechaEmision: string | { seconds: number };
   comisionEmisor: number;
   comisionBonista: number;
+  tasaMercadoCOK: number;
   tasaMercado: number;
   userId: string;
   creadoEn?: { seconds: number };

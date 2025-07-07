@@ -117,6 +117,13 @@ const bonoFormSchema = z
         const num = parseFloat(val);
         return !isNaN(num) && num >= 0 && num <= 10;
       }, "La comisión del bonista debe estar entre 0% y 10%"),
+    tasaMercadoCOK: z
+      .string()
+      .min(1, "La tasa de mercado (COK) es requerida")
+      .refine((val) => {
+        const num = parseFloat(val);
+        return !isNaN(num) && num >= 3 && num <= 20;
+      }, "La tasa de mercado (COK) debe estar entre 3% y 20%"),
   })
   .superRefine((data, ctx) => {
     // Validar nGracia
@@ -198,6 +205,7 @@ export default function EditarBonoPage() {
       fechaEmision: "",
       comisionEmisor: "",
       comisionBonista: "",
+      tasaMercadoCOK: "",
     },
   });
 
@@ -249,6 +257,7 @@ export default function EditarBonoPage() {
             fechaEmision,
             comisionEmisor: String(data.comisionEmisor || ""),
             comisionBonista: String(data.comisionBonista || ""),
+            tasaMercadoCOK: String(data.tasaMercadoCOK || ""),
           });
 
           // Cargar períodos de gracia dinámicos si existen
@@ -325,6 +334,7 @@ export default function EditarBonoPage() {
         fechaEmision: data.fechaEmision,
         comisionEmisor: parseFloat(data.comisionEmisor),
         comisionBonista: parseFloat(data.comisionBonista),
+        tasaMercadoCOK: parseFloat(data.tasaMercadoCOK),
       };
 
       // Agregar períodos de gracia dinámicos si existen
@@ -646,6 +656,38 @@ export default function EditarBonoPage() {
                 <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
                   {errors.comisionBonista.message}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <Label
+                htmlFor="tasaMercadoCOK"
+                className="flex items-center gap-2"
+              >
+                Tasa de Mercado (COK) % <span className="text-red-500">*</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-gray-400 cursor-pointer" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Costo de Oportunidad del Capital. Entre 3% y 20%</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
+              <Input
+                id="tasaMercadoCOK"
+                type="number"
+                step="0.01"
+                min="3"
+                max="20"
+                {...register("tasaMercadoCOK")}
+                placeholder="8.50"
+              />
+              {errors.tasaMercadoCOK && (
+                <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {errors.tasaMercadoCOK.message}
                 </p>
               )}
             </div>
