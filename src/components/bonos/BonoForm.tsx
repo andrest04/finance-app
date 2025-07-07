@@ -23,6 +23,7 @@ import {
   RealTimeCalculationsPanel,
   FrenchMethodPreview,
   DynamicGracePreview,
+  ExportAnalysisButton,
   useDynamicGracePeriods,
   useRealTimeCalculations,
   useUserSettings,
@@ -232,6 +233,11 @@ export default function BonoFormEnhanced() {
             <CostosEmisorSection form={form} watchedValues={watchedValues} />
             {/* RESULTADOS */}
             <ResultadosSection calculatedMetrics={calculatedMetrics} />
+            {/* EXPORTAR ANÁLISIS */}
+            <ExportAnalysisButton
+              calculatedMetrics={calculatedMetrics}
+              watchedValues={watchedValues}
+            />
             {/* VALIDATION SUMMARY */}
             {Object.keys(form.formState.errors).length > 0 && (
               <Card className="p-4 border-red-200 bg-red-50">

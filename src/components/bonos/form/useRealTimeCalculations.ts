@@ -14,6 +14,10 @@ import {
   type FlujoBono,
 } from "@/lib/calculations/indicadoresBono";
 import {
+  analizarBonoSemestral,
+  type BonoSemestralParams,
+} from "@/lib/calculations/bonoSemestralAnalisis";
+import {
   type BonoFormData,
   type CalculatedMetrics,
   type GraciaPeriodoBono,
@@ -68,11 +72,53 @@ export function useRealTimeCalculations(
 
       // Calculate TES (Tasa Efectiva Semestral) if frequency is semestral
       let tes: number | undefined;
+      let analisisSemestral;
+
       if (parseInt(frecuenciaPago) === 2) {
         // For semestral frequency, calculate TES from annual rate
         // TES = (1 + TEA)^(1/2) - 1
         const tasaAnualDecimal = parseFloat(tasaAnual) / 100;
         tes = (Math.pow(1 + tasaAnualDecimal, 1 / 2) - 1) * 100;
+
+        // Realizar análisis completo para bonos semestrales
+        try {
+          const paramsAnalisis: BonoSemestralParams = {
+            valorNominal: parseFloat(valorNominal),
+            tea: parseFloat(tasaAnual),
+            plazo: parseInt(plazo),
+            tasaMercadoTEA: parseFloat(
+              watchedValues.tasaMercadoCOK || tasaAnual
+            ), // Usar COK o tasa del bono como referencia
+            comisionEmisor: parseFloat(comisionEmisor || "0"),
+            comisionBonista: parseFloat(comisionBonista || "0"),
+            comisionCavali: 0.06, // Comisión típica de CAVALI
+          };
+
+          const resultadoAnalisis = analizarBonoSemestral(paramsAnalisis);
+
+          analisisSemestral = {
+            tesMercado: resultadoAnalisis.tesMercado,
+            cuponSemestral: resultadoAnalisis.cuponSemestral,
+            numeroSemestres: resultadoAnalisis.numeroSemestres,
+            precio: resultadoAnalisis.precio,
+            precioMaximoMercado: resultadoAnalisis.precioMaximoMercado,
+            montoNetoRecibidoEmisor: resultadoAnalisis.montoNetoRecibidoEmisor,
+            inversionTotalInversionista:
+              resultadoAnalisis.inversionTotalInversionista,
+            tceaEmisor: resultadoAnalisis.tceaEmisor,
+            treaInversionista: resultadoAnalisis.treaInversionista,
+            treaSinSAB: resultadoAnalisis.treaSinSAB,
+            duracionMacaulay: resultadoAnalisis.duracionMacaulay,
+            duracionModificada: resultadoAnalisis.duracionModificada,
+            convexidadSemestral: resultadoAnalisis.convexidad,
+            esPremium: resultadoAnalisis.esPremium,
+            esDescuento: resultadoAnalisis.esDescuento,
+            esParidad: resultadoAnalisis.esParidad,
+          };
+        } catch (error) {
+          console.warn("Error en análisis semestral:", error);
+          // Continuar con cálculos tradicionales si falla el análisis semestral
+        }
       }
 
       // Calculate cash flows using French method
@@ -142,6 +188,7 @@ export function useRealTimeCalculations(
         totalPagado,
         duracion,
         convexidad,
+        analisisSemestral,
       };
     } catch (error) {
       console.error("Error calculating metrics:", error);

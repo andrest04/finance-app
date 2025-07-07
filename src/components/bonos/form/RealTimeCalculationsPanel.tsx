@@ -100,6 +100,38 @@ export function RealTimeCalculationsPanel({
                       </span>
                     </div>
                   )}
+                  {/* Métricas adicionales del análisis semestral */}
+                  {calculatedMetrics.analisisSemestral && (
+                    <>
+                      <div className="border-t pt-2 mt-3">
+                        <div className="text-xs text-gray-500 mb-2 font-medium">
+                          Análisis Semestral:
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-gray-600">
+                            Precio Máximo:
+                          </span>
+                          <span className="font-mono text-xs font-semibold text-orange-700">
+                            {watchedValues.moneda}{" "}
+                            {calculatedMetrics.analisisSemestral.precioMaximoMercado.toFixed(
+                              2
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-gray-600">
+                            TES Mercado:
+                          </span>
+                          <span className="font-mono text-xs font-semibold text-indigo-700">
+                            {calculatedMetrics.analisisSemestral.tesMercado.toFixed(
+                              4
+                            )}
+                            %
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -187,6 +219,27 @@ export function RealTimeCalculationsPanel({
                   {calculatedMetrics.cuotaConstante >
                     parseFloat(watchedValues.valorNominal || "0") * 0.2 && (
                     <p>• Cuota alta: Verifique capacidad de pago</p>
+                  )}
+                  {/* Recomendaciones específicas del análisis semestral */}
+                  {calculatedMetrics.analisisSemestral && (
+                    <>
+                      {calculatedMetrics.analisisSemestral.duracionModificada >
+                        5 && (
+                        <p>
+                          • Alta duración modificada: Sensible a cambios de tasa
+                        </p>
+                      )}
+                      {calculatedMetrics.analisisSemestral.convexidadSemestral >
+                        50 && (
+                        <p>• Alta convexidad: Buena protección contra riesgo</p>
+                      )}
+                      {calculatedMetrics.analisisSemestral.precioMaximoMercado >
+                        parseFloat(watchedValues.valorNominal || "0") * 1.1 && (
+                        <p>
+                          • Precio máximo alto: Buen potencial de valorización
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

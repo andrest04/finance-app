@@ -28,6 +28,7 @@ export { ResultadosSection } from "./ResultadosSection";
 export { RealTimeCalculationsPanel } from "./RealTimeCalculationsPanel";
 export { FrenchMethodPreview } from "./FrenchMethodPreview";
 export { DynamicGracePreview } from "./DynamicGracePreview";
+export { ExportAnalysisButton } from "./ExportAnalysisButton";
 
 // Exportar hooks personalizados
 export { useDynamicGracePeriods } from "./useDynamicGracePeriods";

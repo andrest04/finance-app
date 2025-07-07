@@ -149,15 +149,51 @@ export interface GraciaPeriodoBono {
 }
 
 export interface CalculatedMetrics {
+  // Tasas tradicionales
   tcea: number;
   trea: number;
   tes?: number; // Tasa Efectiva Semestral
+
+  // Métricas del método francés
   totalPeriodos: number;
   cuotaConstante: number;
   totalIntereses: number;
   totalPagado: number;
   duracion: number;
   convexidad: number;
+
+  // Nuevas métricas del análisis semestral (cuando aplique)
+  analisisSemestral?: {
+    // Tasas convertidas
+    tesMercado: number;
+
+    // Flujos del bono
+    cuponSemestral: number;
+    numeroSemestres: number;
+
+    // Precios del bono
+    precio: number;
+    precioMaximoMercado: number;
+
+    // Costos y flujos netos
+    montoNetoRecibidoEmisor: number;
+    inversionTotalInversionista: number;
+
+    // Tasas de rendimiento específicas
+    tceaEmisor: number;
+    treaInversionista: number;
+    treaSinSAB: number; // TREA sin incluir SAB (comisiones)
+
+    // Indicadores de riesgo mejorados
+    duracionMacaulay: number; // en años
+    duracionModificada: number;
+    convexidadSemestral: number;
+
+    // Clasificación del bono
+    esPremium: boolean;
+    esDescuento: boolean;
+    esParidad: boolean;
+  };
 }
 
 export interface ValidationResult {
