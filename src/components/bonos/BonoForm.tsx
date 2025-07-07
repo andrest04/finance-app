@@ -3,7 +3,12 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { saveBono, BonoData, calcularTREABono } from "@/lib/bono/bonoUtils";
+import {
+  saveBono,
+  BonoData,
+  calcularTREABono,
+  checkBonoNameExists,
+} from "@/lib/bono/bonoUtils";
 import { useCurrentUser } from "@/lib/firebase/useCurrentUser";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,6 +38,8 @@ export default function BonoFormEnhanced() {
   const { firebaseUser, profile } = useCurrentUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [esGraciaDinamica, setEsGraciaDinamica] = useState(false);
+  const [isCheckingName, setIsCheckingName] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
   const router = useRouter();
 
   // Form setup
@@ -59,6 +66,35 @@ export default function BonoFormEnhanced() {
   // Watch form values for real-time updates
   const watchedValues = form.watch();
   const tipoGracia = form.watch("tipoGracia");
+  const nombreValue = form.watch("nombre");
+
+  // Validación en tiempo real del nombre del bono
+  useEffect(() => {
+    const checkNameAvailability = async () => {
+      if (!nombreValue || !firebaseUser || nombreValue.length < 3) {
+        setNameError(null);
+        return;
+      }
+
+      setIsCheckingName(true);
+      try {
+        const exists = await checkBonoNameExists(firebaseUser.uid, nombreValue);
+        if (exists) {
+          setNameError(`Ya existe un bono con el nombre "${nombreValue}"`);
+        } else {
+          setNameError(null);
+        }
+      } catch (error) {
+        console.error("Error checking name availability:", error);
+      } finally {
+        setIsCheckingName(false);
+      }
+    };
+
+    // Debounce la verificación para evitar demasiadas consultas
+    const timeoutId = setTimeout(checkNameAvailability, 500);
+    return () => clearTimeout(timeoutId);
+  }, [nombreValue, firebaseUser]);
 
   // Custom hooks for modular functionality
   useUserSettings(firebaseUser, form);
@@ -96,6 +132,12 @@ export default function BonoFormEnhanced() {
   const onSubmit = async (data: BonoFormData) => {
     if (!firebaseUser) {
       toast.error("Debes iniciar sesión para registrar un bono.");
+      return;
+    }
+
+    // Verificar si hay un error de nombre duplicado
+    if (nameError) {
+      toast.error("No puedes guardar el bono porque el nombre ya existe.");
       return;
     }
 
@@ -197,7 +239,16 @@ export default function BonoFormEnhanced() {
       router.refresh();
     } catch (error) {
       console.error("Error al guardar:", error);
-      toast.error("Ocurrió un error al registrar el bono.");
+
+      // Manejar específicamente el error de nombre duplicado
+      if (
+        error instanceof Error &&
+        error.message.includes("Ya existe un bono con el nombre")
+      ) {
+        toast.error(error.message);
+      } else {
+        toast.error("Ocurrió un error al registrar el bono.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -211,7 +262,12 @@ export default function BonoFormEnhanced() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {" "}
             {/* DATOS DEL BONO */}
-            <DatosBonoSection form={form} watchedValues={watchedValues} />
+            <DatosBonoSection
+              form={form}
+              watchedValues={watchedValues}
+              nameError={nameError}
+              isCheckingName={isCheckingName}
+            />
             {/* CONDICIONES FINANCIERAS */}
             <CondicionesFinancierasSection
               form={form}

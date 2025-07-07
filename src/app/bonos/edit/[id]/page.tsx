@@ -23,7 +23,10 @@ import {
 } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import type { BonoData } from "@/lib/bono/bonoUtils";
-import { calcularTCEABono } from "@/lib/bono/bonoUtils";
+import {
+  calcularTCEABono,
+  checkBonoNameExistsForEdit,
+} from "@/lib/bono/bonoUtils";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -319,6 +322,19 @@ export default function EditarBonoPage() {
     if (!firebaseUser || !id) return;
 
     try {
+      // Verificar si ya existe un bono con el mismo nombre (excluyendo el actual)
+      const nameExists = await checkBonoNameExistsForEdit(
+        firebaseUser.uid,
+        data.nombre,
+        String(id)
+      );
+      if (nameExists) {
+        toast.error(
+          `Ya existe otro bono con el nombre "${data.nombre}". Por favor, elige un nombre diferente.`
+        );
+        return;
+      }
+
       // Preparar los datos actualizados
       const updatedData: Partial<BonoData> = {
         nombre: data.nombre,

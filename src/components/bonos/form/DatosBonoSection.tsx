@@ -23,11 +23,15 @@ import type { BonoFormData } from "./types";
 interface DatosBonoSectionProps {
   form: UseFormReturn<BonoFormData>;
   watchedValues: BonoFormData;
+  nameError?: string | null;
+  isCheckingName?: boolean;
 }
 
 export function DatosBonoSection({
   form,
   watchedValues,
+  nameError,
+  isCheckingName,
 }: DatosBonoSectionProps) {
   return (
     <Card className="p-6 border-blue-300 bg-white shadow-sm">
@@ -59,6 +63,18 @@ export function DatosBonoSection({
             <p className="text-sm text-red-500 flex items-center gap-1">
               <AlertCircle className="w-3 h-3" />
               {form.formState.errors.nombre.message}
+            </p>
+          )}
+          {nameError && (
+            <p className="text-sm text-red-500 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              {nameError}
+            </p>
+          )}
+          {isCheckingName && (
+            <p className="text-sm text-blue-500 flex items-center gap-1">
+              <CheckCircle className="w-3 h-3 animate-spin" />
+              Verificando disponibilidad del nombre...
             </p>
           )}
         </div>

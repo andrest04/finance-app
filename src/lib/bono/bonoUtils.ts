@@ -84,8 +84,57 @@ export interface BonoFullStats {
   }[];
 }
 
+export const checkBonoNameExists = async (
+  userId: string,
+  nombre: string
+): Promise<boolean> => {
+  try {
+    const q = query(
+      collection(db, "bonds"),
+      where("userId", "==", userId),
+      where("nombre", "==", nombre),
+      limit(1)
+    );
+    const snapshot = await getDocs(q);
+    return !snapshot.empty;
+  } catch (error) {
+    console.error("Error checking bono name:", error);
+    throw error;
+  }
+};
+
+export const checkBonoNameExistsForEdit = async (
+  userId: string,
+  nombre: string,
+  currentBonoId: string
+): Promise<boolean> => {
+  try {
+    const q = query(
+      collection(db, "bonds"),
+      where("userId", "==", userId),
+      where("nombre", "==", nombre)
+    );
+    const snapshot = await getDocs(q);
+
+    // Verificar si existe otro bono con el mismo nombre (excluyendo el actual)
+    const duplicates = snapshot.docs.filter((doc) => doc.id !== currentBonoId);
+    return duplicates.length > 0;
+  } catch (error) {
+    console.error("Error checking bono name for edit:", error);
+    throw error;
+  }
+};
+
 export const saveBono = async (user: User, bonoData: BonoData) => {
   try {
+    // Verificar si ya existe un bono con el mismo nombre para este usuario
+    const nameExists = await checkBonoNameExists(user.uid, bonoData.nombre);
+    if (nameExists) {
+      throw new Error(
+        `Ya existe un bono con el nombre "${bonoData.nombre}". Por favor, elige un nombre diferente.`
+      );
+    }
+
     const docRef = await addDoc(collection(db, "bonds"), {
       ...bonoData,
       creadoEn: Timestamp.now(),
